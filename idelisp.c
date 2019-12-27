@@ -9,6 +9,14 @@ long eval_op(long left_value, char* operator, long right_value) {
     if (strcmp(operator, "-") == 0) { return left_value - right_value; }
     if (strcmp(operator, "*") == 0) { return left_value * right_value; }
     if (strcmp(operator, "/") == 0) { return left_value / right_value; }
+    if (strcmp(operator, "%") == 0) { return left_value % right_value; }
+    if (strcmp(operator, "^") == 0) { return pow(left_value, right_value); }
+    if (strcmp(operator, "min") == 0) {
+        return left_value < right_value ? left_value : right_value;
+    }
+    if (strcmp(operator, "max") == 0) {
+        return left_value > right_value ? left_value : right_value;
+    }
     return 0;
 }
 
@@ -19,11 +27,17 @@ long eval(mpc_ast_t* node) {
 
     char* operator = node->children[1]->contents;
     long acc_value = eval(node->children[2]);
+    int node_children = node->children_num - 3;
 
     int i = 3;
     while(strstr(node->children[i]->tag, "expr")) {
         acc_value = eval_op(acc_value, operator, eval(node->children[i]));
         i++;
+    }
+
+    // Negate value if only one child is passed
+    if (strcmp(operator, "-") == 0 && node_children == 1) {
+        return -acc_value;
     }
 
     return acc_value;
@@ -40,7 +54,7 @@ int main(int argc, char** argv) {
     mpca_lang(MPCA_LANG_DEFAULT,
         "                                                                     \
             number   : /-?[0-9]+/ ;                                           \
-            operator : '+' | '-' | '*' | '/' ;                                \
+            operator : '+' | '-' | '*' | '/' | '%' | '^' | \"min\" | \"max\" ;\
             expr     : <number> | '(' <operator> <expr>+ ')' ;                \
             idelisp  : /^/ <operator> <expr>+ /$/ ;                           \
         "
