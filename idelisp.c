@@ -9,6 +9,7 @@ enum {
     IDEOBJ_NUM,
     IDEOBJ_SYMBOL,
     IDEOBJ_SEXPR,
+    IDEOBJ_QEXPR,
     IDEOBJ_DECIMAL
 };
 
@@ -66,11 +67,21 @@ ideobj* ideobj_sexpr(void) {
     return obj;
 }
 
+ideobj* ideobj_qexpr(void) {
+    ideobj* obj = malloc(sizeof(ideobj));
+
+    obj->type = IDEOBJ_QEXPR;
+    obj->count = 0;
+    obj->cell = NULL;
+    return obj;
+}
+
 void ideobj_del(ideobj* obj) {
     switch (obj->type) {
         case IDEOBJ_ERR: free(obj->err); break;
         case IDEOBJ_SYMBOL: free(obj->symbol); break;
         case IDEOBJ_NUM: break;
+        case IDEOBJ_QEXPR:
         case IDEOBJ_SEXPR:
             for (int i=0; i<obj->count; i++) {
                 ideobj_del(obj->cell[i]);
@@ -112,6 +123,9 @@ void ideobj_print(ideobj* obj) {
             break;
         case IDEOBJ_SEXPR:
             ideobj_expr_print(obj, '(', ')');
+            break;
+        case IDEOBJ_QEXPR:
+            ideobj_expr_print(obj, '{', '}');
             break;
     }
 }
@@ -192,19 +206,15 @@ ideobj* ideobj_read(mpc_ast_t* node) {
     }
 
     ideobj* acc_value = NULL;
-    if (strstr(node->tag, ">")) {
-        acc_value = ideobj_sexpr();
-    }
-
-    if (strstr(node->tag, "sexpr")) {
-        acc_value = ideobj_sexpr();
-    }
+    if (strstr(node->tag, ">")) { acc_value = ideobj_sexpr(); }
+    if (strstr(node->tag, "sexpr")) { acc_value = ideobj_sexpr(); }
+    if (strstr(node->tag, "qexpr")) { acc_value = ideobj_qexpr(); }
 
     for (int i=0; i<node->children_num; i++) {
         if (strcmp(node->children[i]->contents, "(") == 0) { continue; }
-        if (strcmp(node->children[i]->contents, "(") == 0) { continue; }
-        if (strcmp(node->children[i]->contents, "}") == 0) { continue; }
+        if (strcmp(node->children[i]->contents, ")") == 0) { continue; }
         if (strcmp(node->children[i]->contents, "{") == 0) { continue; }
+        if (strcmp(node->children[i]->contents, "}") == 0) { continue; }
         if (strcmp(node->children[i]->tag, "regex") == 0) { continue; }
 
         acc_value = ideobj_add(acc_value, ideobj_read(node->children[i]));
@@ -257,6 +267,54 @@ ideobj* builtin_op(ideobj* obj, char* operator) {
 
 ideobj* ideobj_eval(ideobj* obj);
 
+#define IASSERT(args, cond, err) \
+    if (!(cond)) { ideobj_del(args); return ideobj_err(err); }
+
+ideobj* builtin_head(ideobj* obj) {
+    IASSERT(obj, obj->count == 1, "Function 'head' received wrong number of arguments, requires 1");
+
+    ideobj* first = ideobj_take(obj, 0);
+    while(first->count > 1) {
+        ideobj_del(
+            ideobj_pop(first, 1)
+        );
+    }
+    return first;
+}
+
+ideobj* builtin_tail(ideobj* obj) {
+    IASSERT(obj, obj->count == 1, "Function 'head' received wrong number of arguments, requires 1");
+
+    ideobj* first = ideobj_take(obj, 0);
+    ideobj_del(ideobj_pop(obj, 0));
+    return first;
+}
+
+ideobj* builtin_list(ideobj* obj) {
+    obj->type = IDEOBJ_QEXPR;
+    return obj;
+}
+
+ideobj* builtin_eval(ideobj* obj) {
+    ideobj* first = ideobj_take(obj, 0);
+
+    first->type = IDEOBJ_SEXPR;
+    return ideobj_eval(first);
+}
+
+ideobj* builtin(ideobj* obj, char* operator) {
+    if(strcmp("head", operator) == 0) { return builtin_head(obj); }
+    if(strcmp("tail", operator) == 0) { return builtin_tail(obj); }
+    if(strcmp("list", operator) == 0) { return builtin_list(obj); }
+    if(strcmp("eval", operator) == 0) { return builtin_eval(obj); }
+
+    if(strstr("+-/*%^", operator)) {
+        return builtin_op(obj, operator);
+    }
+    ideobj_del(obj);
+    return ideobj_err("Invalid operator");
+}
+
 ideobj* ideobj_eval_sexpr(ideobj* obj) {
     for (int i=0; i<obj->count; i++) {
         obj->cell[i] = ideobj_eval(obj->cell[i]);
@@ -283,7 +341,7 @@ ideobj* ideobj_eval_sexpr(ideobj* obj) {
         return ideobj_err("S-Expression does not start with symbol");
     }
 
-    ideobj* result = builtin_op(obj, first->symbol);
+    ideobj* result = builtin(obj, first->symbol);
     ideobj_del(first);
     return result;
 }
@@ -301,18 +359,21 @@ int main(int argc, char** argv) {
     mpc_parser_t* Number = mpc_new("number");
     mpc_parser_t* Symbol = mpc_new("symbol");
     mpc_parser_t* Sexpr = mpc_new("sexpr");
+    mpc_parser_t* Qexpr = mpc_new("qexpr");
     mpc_parser_t* Expr = mpc_new("expr");
     mpc_parser_t* IdeLISP = mpc_new("idelisp");
 
     mpca_lang(MPCA_LANG_DEFAULT,
         "                                                                     \
             number   : /-?[0-9]+/ ;                                           \
-            symbol   : '+' | '-' | '*' | '/' | '%' | '^' | \"min\" | \"max\" ;\
+            symbol   : \"list\" | \"head\" | \"tail\" | \"join\" | \"eval\"   \
+                     | '+' | '-' | '*' | '/' | '%' | '^' | \"min\" | \"max\" ;\
             sexpr    : '(' <expr>* ')' ;                                      \
-            expr     : <number> | <symbol> | <sexpr> ;                        \
+            qexpr    : '{' <expr>* '}' ;                                      \
+            expr     : <number> | <symbol> | <sexpr> | <qexpr> ;              \
             idelisp  : /^/ <expr>* /$/ ;                                      \
         "
-        , Number, Sexpr, Symbol, Expr, IdeLISP);
+        , Number, Symbol, Sexpr, Qexpr, Expr, IdeLISP);
 
     while(1) {
         char* source = readline(">> ");
@@ -335,6 +396,6 @@ int main(int argc, char** argv) {
         free(source);
     }
 
-    mpc_cleanup(4, Number, Symbol, Sexpr, Expr, IdeLISP);
+    mpc_cleanup(5, Number, Symbol, Sexpr, Qexpr, Expr, IdeLISP);
     return 0;
 }
