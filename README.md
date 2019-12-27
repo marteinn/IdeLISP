@@ -18,3 +18,4 @@ This is a LISP i'm putting together while reading [Build Your Own Lisp](http://w
 - `atoi`
 - `strstr`
 - `strcmp`
+- `strcpy`
