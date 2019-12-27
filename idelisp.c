@@ -48,7 +48,7 @@ ideobj* ideobj_decimal(double val) {
     return obj;
 }
 
-ideobj* ideobj_sym(char* symbol) {
+ideobj* ideobj_symbol(char* symbol) {
     ideobj* obj = malloc(sizeof(ideobj));
 
     obj->type = IDEOBJ_SYMBOL;
@@ -57,7 +57,7 @@ ideobj* ideobj_sym(char* symbol) {
     return obj;
 }
 
-ideobj* ideobj_sexp(void) {
+ideobj* ideobj_sexpr(void) {
     ideobj* obj = malloc(sizeof(ideobj));
 
     obj->type = IDEOBJ_SEXPR;
@@ -81,16 +81,37 @@ void ideobj_del(ideobj* obj) {
     free(obj);
 }
 
+void ideobj_print(ideobj* obj);
+
+void ideobj_expr_print(ideobj* obj, char open, char close) {
+    putchar(open);
+
+    for (int i=0; i<obj->count; i++) {
+        if (i > 0) {
+            putchar(' ');
+        }
+        ideobj_print(obj->cell[i]);
+    }
+
+    putchar(close);
+}
+
 void ideobj_print(ideobj* obj) {
     switch (obj->type) {
+        case IDEOBJ_ERR:
+            printf("Error: %s", obj->err);
+            break;
         case IDEOBJ_NUM:
             printf("%li", obj->num);
             break;
         case IDEOBJ_DECIMAL:
             printf("%.2f", obj->decimal);
             break;
-        case IDEOBJ_ERR:
-            printf("Error: %s", obj->err);
+        case IDEOBJ_SYMBOL:
+            printf("%s", obj->symbol);
+            break;
+        case IDEOBJ_SEXPR:
+            ideobj_expr_print(obj, '(', ')');
             break;
     }
 }
@@ -148,32 +169,130 @@ ideobj* eval_op(ideobj* left, char* operator, ideobj* right) {
     return ideobj_err("Invalid operator");
 }
 
-ideobj* eval(mpc_ast_t* node) {
-    if (strstr(node->tag, "number")) {
-        errno = 0;
-        long num = strtol(node->contents, NULL, 10);
-        if (errno == ERANGE) {
-            return ideobj_err("Invalid number");
-        }
-        return ideobj_num(num);
+ideobj* ideobj_read_num(mpc_ast_t* node) {
+    errno = 0;
+    long num = strtol(node->contents, NULL, 10);
+    if (errno == ERANGE) {
+        return ideobj_err("Invalid number");
+    }
+    return ideobj_num(num);
+}
+
+ideobj* ideobj_add(ideobj* left, ideobj* right) {
+    left->count++;
+    left->cell = realloc(left->cell, sizeof(ideobj*) * left->count);
+    left->cell[left->count-1] = right;
+    return left;
+}
+
+ideobj* ideobj_read(mpc_ast_t* node) {
+    if (strstr(node->tag, "number")) { return ideobj_read_num(node); }
+    if (strstr(node->tag, "symbol")) {
+        return ideobj_symbol(node->contents);
     }
 
-    char* operator = node->children[1]->contents;
-    ideobj* acc_value = eval(node->children[2]);
-    int node_children = node->children_num - 3;
-
-    int i = 3;
-    while(strstr(node->children[i]->tag, "expr")) {
-        acc_value = eval_op(acc_value, operator, eval(node->children[i]));
-        i++;
+    ideobj* acc_value = NULL;
+    if (strstr(node->tag, ">")) {
+        acc_value = ideobj_sexpr();
     }
 
-    // Negate value if only one child is passed
-    if (strcmp(operator, "-") == 0 && node_children == 1) {
-        return ideobj_num(-acc_value->num);
+    if (strstr(node->tag, "sexpr")) {
+        acc_value = ideobj_sexpr();
+    }
+
+    for (int i=0; i<node->children_num; i++) {
+        if (strcmp(node->children[i]->contents, "(") == 0) { continue; }
+        if (strcmp(node->children[i]->contents, "(") == 0) { continue; }
+        if (strcmp(node->children[i]->contents, "}") == 0) { continue; }
+        if (strcmp(node->children[i]->contents, "{") == 0) { continue; }
+        if (strcmp(node->children[i]->tag, "regex") == 0) { continue; }
+
+        acc_value = ideobj_add(acc_value, ideobj_read(node->children[i]));
     }
 
     return acc_value;
+}
+
+ideobj* ideobj_pop(ideobj* obj, int i) {
+    ideobj* el = obj->cell[i];
+
+    memmove(
+        &obj->cell[i], &obj->cell[i+1], sizeof(ideobj*) * (obj->count-i-1)
+    );
+
+    obj->count--;
+    obj->cell = realloc(obj->cell, sizeof(ideobj*) * obj->count);
+    return el;
+}
+
+ideobj* ideobj_take(ideobj* obj, int i) {
+    ideobj* el = ideobj_pop(obj, i);
+    ideobj_del(obj);
+    return el;
+}
+
+ideobj* builtin_op(ideobj* obj, char* operator) {
+    for (int i=0; i<obj->count; i++) {
+        if (obj->cell[i]->type != IDEOBJ_NUM) {
+            ideobj_del(obj);
+            return ideobj_err("Cannot operate on non-number");
+        }
+    }
+
+    ideobj* acc_value = ideobj_pop(obj, 0);
+
+    if (strcmp(operator, "-") == 0 && obj->count == 0) {
+        acc_value->num = -acc_value->num;
+    }
+
+    while(obj->count > 0) {
+        ideobj* right = ideobj_pop(obj, 0);
+        acc_value = eval_tenary_number_op(acc_value, operator, right);
+        ideobj_del(right);
+    }
+
+    ideobj_del(obj);
+    return acc_value;
+}
+
+ideobj* ideobj_eval(ideobj* obj);
+
+ideobj* ideobj_eval_sexpr(ideobj* obj) {
+    for (int i=0; i<obj->count; i++) {
+        obj->cell[i] = ideobj_eval(obj->cell[i]);
+    }
+
+    for (int i=0; i<obj->count; i++) {
+        if (obj->cell[i]->type == IDEOBJ_ERR) {
+            return ideobj_take(obj, i);
+        }
+    }
+
+    if (obj->count == 0) {
+        return obj;
+    }
+
+    if (obj->count == 1) {
+        return ideobj_take(obj, 0);
+    }
+
+    ideobj* first = ideobj_pop(obj, 0);
+    if (first->type != IDEOBJ_SYMBOL) {
+        ideobj_del(first);
+        ideobj_del(obj);
+        return ideobj_err("S-Expression does not start with symbol");
+    }
+
+    ideobj* result = builtin_op(obj, first->symbol);
+    ideobj_del(first);
+    return result;
+}
+
+ideobj* ideobj_eval(ideobj* obj) {
+    if (obj->type == IDEOBJ_SEXPR) {
+        return ideobj_eval_sexpr(obj);
+    }
+    return obj;
 }
 
 int main(int argc, char** argv) {
@@ -191,7 +310,7 @@ int main(int argc, char** argv) {
             symbol   : '+' | '-' | '*' | '/' | '%' | '^' | \"min\" | \"max\" ;\
             sexpr    : '(' <expr>* ')' ;                                      \
             expr     : <number> | <symbol> | <sexpr> ;                        \
-            idelisp  : /^/ <symbol> <expr>+ /$/ ;                             \
+            idelisp  : /^/ <expr>* /$/ ;                                      \
         "
         , Number, Sexpr, Symbol, Expr, IdeLISP);
 
@@ -203,8 +322,11 @@ int main(int argc, char** argv) {
         if (mpc_parse("<stdin>", source, IdeLISP, &result)) {
             mpc_ast_t* root_node = result.output;
 
-            ideobj* v = eval(root_node);
+            ideobj* v = ideobj_eval(
+                ideobj_read(root_node)
+            );
             ideobj_println(v);
+            ideobj_del(v);
         } else {
             mpc_err_print(result.error);
         }

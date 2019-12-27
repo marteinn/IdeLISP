@@ -12,6 +12,11 @@
 >> 30
 ```
 
+## Types
+
+- Number
+- Decimal
+
 ## Operator table
 
 | Operator  | Binary                         | Unary                           |
