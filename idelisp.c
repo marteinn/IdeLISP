@@ -4,17 +4,28 @@
 #include <editline/readline.h>
 #include "mpc.h"
 
-enum { IDEOBJ_NUM, IDEOBJ_DECIMAL, IDEOBJ_ERR };
 enum {
-    IDERR_DIV_ZERO, IDERR_BAD_OP, IDERR_BAD_NUM, IDERR_MODULO_BY_ZERO
+    IDEOBJ_ERR, IDEOBJ_NUM, IDEOBJ_SYM, IDEOBJ_SEXPR, IDEOBJ_DECIMAL
 };
 
 typedef struct {
     int type;
     long num;
     double decimal;
-    int err;
+    char* err;
+    char* sym;
+    // expressions
+    int count;
+    struct ideobj** cell;
 } ideobj;
+
+ideobj ideobj_err(char* err) {
+    ideobj obj;
+
+    obj.type = IDEOBJ_ERR;
+    obj.err = err;
+    return obj;
+}
 
 ideobj ideobj_num(long val) {
     ideobj obj;
@@ -32,14 +43,6 @@ ideobj ideobj_decimal(double val) {
     return obj;
 }
 
-ideobj ideobj_err(int err) {
-    ideobj obj;
-
-    obj.type = IDEOBJ_ERR;
-    obj.err = err;
-    return obj;
-}
-
 void ideobj_print(ideobj obj) {
     switch (obj.type) {
         case IDEOBJ_NUM:
@@ -49,15 +52,7 @@ void ideobj_print(ideobj obj) {
             printf("%.2f", obj.decimal);
             break;
         case IDEOBJ_ERR:
-            if (obj.err == IDERR_DIV_ZERO) {
-                printf("Error: Division by zero");
-            }
-            if (obj.err == IDERR_BAD_OP) {
-                printf("Error: Invalid operator");
-            }
-            if (obj.err == IDERR_MODULO_BY_ZERO) {
-                printf("Error: Modulo by zero");
-            }
+            printf("Error: %s", obj.err);
             break;
     }
 }
@@ -79,13 +74,13 @@ ideobj eval_tenary_number_op(ideobj left, char* operator, ideobj right) {
     }
     if (strcmp(operator, "/") == 0) {
         if (right.num == 0) {
-            return ideobj_err(IDERR_DIV_ZERO);
+            return ideobj_err("Division by zero");
         }
         return ideobj_num(left.num / right.num);
     }
     if (strcmp(operator, "%") == 0) {
         if (right.num == 0) {
-            return ideobj_err(IDERR_MODULO_BY_ZERO);
+            return ideobj_err("Modulo by zero");
         }
         return ideobj_num(left.num % right.num);
     }
@@ -101,7 +96,7 @@ ideobj eval_tenary_number_op(ideobj left, char* operator, ideobj right) {
         return ideobj_num(left.num > right.num ? left.num : right.num);
     }
 
-    return ideobj_err(IDERR_BAD_OP);
+    return ideobj_err("Invalid operator");
 }
 
 ideobj eval_op(ideobj left, char* operator, ideobj right) {
@@ -112,7 +107,7 @@ ideobj eval_op(ideobj left, char* operator, ideobj right) {
         return eval_tenary_number_op(left, operator, right);
     }
 
-    return ideobj_err(IDERR_BAD_OP);
+    return ideobj_err("Invalid operator");
 }
 
 ideobj eval(mpc_ast_t* node) {
@@ -120,7 +115,7 @@ ideobj eval(mpc_ast_t* node) {
         errno = 0;
         long num = strtol(node->contents, NULL, 10);
         if (errno == ERANGE) {
-            return ideobj_err(IDERR_BAD_NUM);
+            return ideobj_err("Invalid number");
         }
         return ideobj_num(num);
     }
@@ -147,18 +142,20 @@ int main(int argc, char** argv) {
     puts("IdeLISP (type exit() to quit)");
 
     mpc_parser_t* Number = mpc_new("number");
-    mpc_parser_t* Operator = mpc_new("operator");
+    mpc_parser_t* Symbol = mpc_new("symbol");
+    mpc_parser_t* Sexpr = mpc_new("sexpr");
     mpc_parser_t* Expr = mpc_new("expr");
     mpc_parser_t* IdeLISP = mpc_new("idelisp");
 
     mpca_lang(MPCA_LANG_DEFAULT,
         "                                                                     \
             number   : /-?[0-9]+/ ;                                           \
-            operator : '+' | '-' | '*' | '/' | '%' | '^' | \"min\" | \"max\" ;\
-            expr     : <number> | '(' <operator> <expr>+ ')' ;                \
-            idelisp  : /^/ <operator> <expr>+ /$/ ;                           \
+            symbol   : '+' | '-' | '*' | '/' | '%' | '^' | \"min\" | \"max\" ;\
+            sexpr    : '(' <expr>* ')' ;                                      \
+            expr     : <number> | <symbol> | <sexpr> ;                        \
+            idelisp  : /^/ <symbol> <expr>+ /$/ ;                             \
         "
-        , Number, Operator, Expr, IdeLISP);
+        , Number, Sexpr, Symbol, Expr, IdeLISP);
 
     while(1) {
         char* source = readline(">> ");
@@ -178,6 +175,6 @@ int main(int argc, char** argv) {
         free(source);
     }
 
-    mpc_cleanup(4, Number, Operator, Expr, IdeLISP);
+    mpc_cleanup(4, Number, Symbol, Sexpr, Expr, IdeLISP);
     return 0;
 }
