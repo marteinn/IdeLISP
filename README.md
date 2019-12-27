@@ -12,3 +12,8 @@ Use lldb
 - [C reference](https://en.cppreference.com/w/c)
 - [Polish notation](https://en.wikipedia.org/wiki/Polish_notation)
 - [MPC](https://github.com/orangeduck/mpc)
+
+## Ref
+- `atoi`
+- `strstr`
+- `strcmp`
