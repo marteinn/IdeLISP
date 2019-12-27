@@ -5,15 +5,19 @@
 #include "mpc.h"
 
 enum {
-    IDEOBJ_ERR, IDEOBJ_NUM, IDEOBJ_SYM, IDEOBJ_SEXPR, IDEOBJ_DECIMAL
+    IDEOBJ_ERR,
+    IDEOBJ_NUM,
+    IDEOBJ_SYMBOL,
+    IDEOBJ_SEXPR,
+    IDEOBJ_DECIMAL
 };
 
-typedef struct {
+typedef struct ideobj {
     int type;
     long num;
     double decimal;
     char* err;
-    char* sym;
+    char* symbol;
     // expressions
     int count;
     struct ideobj** cell;
@@ -42,6 +46,39 @@ ideobj* ideobj_decimal(double val) {
     obj->type = IDEOBJ_DECIMAL;
     obj->decimal = val;
     return obj;
+}
+
+ideobj* ideobj_sym(char* symbol) {
+    ideobj* obj = malloc(sizeof(ideobj));
+
+    obj->type = IDEOBJ_SYMBOL;
+    obj->symbol= malloc(strlen(symbol) + 1);
+    strcpy(obj->symbol, symbol);
+    return obj;
+}
+
+ideobj* ideobj_sexp(void) {
+    ideobj* obj = malloc(sizeof(ideobj));
+
+    obj->type = IDEOBJ_SEXPR;
+    obj->count = 0;
+    obj->cell = NULL;
+    return obj;
+}
+
+void ideobj_del(ideobj* obj) {
+    switch (obj->type) {
+        case IDEOBJ_ERR: free(obj->err); break;
+        case IDEOBJ_SYMBOL: free(obj->symbol); break;
+        case IDEOBJ_NUM: break;
+        case IDEOBJ_SEXPR:
+            for (int i=0; i<obj->count; i++) {
+                ideobj_del(obj->cell[i]);
+            }
+            free(obj->cell);
+    }
+
+    free(obj);
 }
 
 void ideobj_print(ideobj* obj) {
