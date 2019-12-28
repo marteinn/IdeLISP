@@ -8,8 +8,12 @@ This is a LISP i'm putting together while reading [Build Your Own Lisp](http://w
 ## Example syntax
 
 ```
-(set-v `(x) 1)
+(def `(x) 1)
 (+ x 1)
+(let `(combine) (fn `(x y) `(+ x y)))
+(combine 2 1)
+(let `(plus-two) (fn `(x) `(+ 2 x)))
+(plus-two 2)
 ```
 
 ## Debugging
@@ -21,3 +25,9 @@ This is a LISP i'm putting together while reading [Build Your Own Lisp](http://w
 - [Polish notation](https://en.wikipedia.org/wiki/Polish_notation)
 - [MPC](https://github.com/orangeduck/mpc)
 - [Cons](https://en.wikipedia.org/wiki/Cons)
+
+## TODO
+- Remove `{}` syntax altogether
+
+## The name?
+Its a pun on the french name for dogmatix in Asterix/Obelix, which is Idéfix.

@@ -19,16 +19,28 @@
 
 ## Globals
 
-### `set-v`
+### `def`
+
+Set global variables
 
 ```
-(set-v `(x) 1)
+(def `(x) 1)
 x
 >> 1
 
-(set-v `(x y z) 1 2 3)
+(def `(x y z) 1 2 3)
 z
 >> 3
+```
+
+### `let`
+
+Set local variables
+
+```
+(let `(x) 1)
+x
+>> 1
 ```
 
 ### `exit`
@@ -37,6 +49,16 @@ Exits the prompt.
 
 ```
 exit ()
+```
+
+### `fn`
+
+Function constructor
+
+```
+(let `(plus-two) (fn `(x) `(+ 2 x)))
+(plus-two 2)
+>> 4
 ```
 
 ## Macros
