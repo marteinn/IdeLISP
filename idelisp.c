@@ -10,19 +10,34 @@ enum {
     IDEOBJ_SYMBOL,
     IDEOBJ_SEXPR,
     IDEOBJ_QEXPR,
-    IDEOBJ_DECIMAL
+    IDEOBJ_DECIMAL,
+    IDEOBJ_FUN
 };
 
-typedef struct ideobj {
+struct ideobj;
+struct ideenv;
+typedef struct ideobj ideobj;
+typedef struct ideenv ideenv;
+
+typedef ideobj*(*ibuiltin)(ideenv*, ideobj*);
+
+struct ideobj {
     int type;
     long num;
     double decimal;
     char* err;
     char* symbol;
-    // expressions
+    ibuiltin fun;
     int count;
     struct ideobj** cell;
-} ideobj;
+};
+
+struct ideenv {
+    int count;
+    char** symbols;
+    ideobj** values;
+};
+
 
 ideobj* ideobj_err(char* err) {
     ideobj* obj = malloc(sizeof(ideobj));
@@ -76,11 +91,20 @@ ideobj* ideobj_qexpr(void) {
     return obj;
 }
 
+ideobj* ideobj_fun(ibuiltin fun) {
+    ideobj* obj = malloc(sizeof(ideobj));
+
+    obj->type = IDEOBJ_FUN;
+    obj->fun = fun;
+    return obj;
+}
+
 void ideobj_del(ideobj* obj) {
     switch (obj->type) {
         case IDEOBJ_ERR: free(obj->err); break;
         case IDEOBJ_SYMBOL: free(obj->symbol); break;
         case IDEOBJ_NUM: break;
+        case IDEOBJ_FUN: break;
         case IDEOBJ_QEXPR:
         case IDEOBJ_SEXPR:
             for (int i=0; i<obj->count; i++) {
@@ -90,6 +114,38 @@ void ideobj_del(ideobj* obj) {
     }
 
     free(obj);
+}
+
+ideobj* ideobj_copy(ideobj* obj) {
+    ideobj* copy = malloc(sizeof(ideobj));
+    copy->type = obj->type;
+
+    switch (obj->type) {
+        case IDEOBJ_FUN:
+            copy->fun = obj->fun;
+            break;
+        case IDEOBJ_NUM:
+            copy->num = obj->num;
+            break;
+        case IDEOBJ_ERR:
+            copy->err = malloc(strlen(obj->err) + 1);
+            strcpy(copy->err, obj->err);
+            break;
+        case IDEOBJ_SYMBOL:
+            copy->symbol = malloc(strlen(obj->symbol) + 1);
+            strcpy(copy->symbol, obj->symbol);
+            break;
+        case IDEOBJ_QEXPR:
+        case IDEOBJ_SEXPR:
+            copy->count = obj->count;
+            copy->cell = malloc(sizeof(ideobj) * copy->count);
+            for (int i=0; i<obj->count; i++) {
+                copy->cell[i] = ideobj_copy(obj->cell[i]);
+            }
+            break;
+    }
+
+    return copy;
 }
 
 void ideobj_print(ideobj* obj);
@@ -127,12 +183,62 @@ void ideobj_print(ideobj* obj) {
         case IDEOBJ_QEXPR:
             ideobj_expr_print(obj, '{', '}');
             break;
+        case IDEOBJ_FUN:
+            printf("<function>");
+            break;
     }
 }
 
 void ideobj_println(ideobj* obj) {
     ideobj_print(obj);
     putchar('\n');
+}
+
+ideenv* ideenv_new(void) {
+    ideenv* env = malloc(sizeof(ideenv));
+    env->count = 0;
+    env->symbols = NULL;
+    env->values = NULL;
+    return env;
+}
+
+void ideenv_del(ideenv* env) {
+    for (int i=0; i<env->count; i++) {
+        free(env->symbols[i]);
+        ideobj_del(env->values[i]);
+    }
+
+    free(env->symbols);
+    free(env->values);
+    free(env);
+}
+
+ideobj* ideenv_get(ideenv* env, ideobj* key) {
+    for (int i=0; i<env->count; i++) {
+        if (strcmp(env->symbols[i], key->symbol) == 0) {
+            return ideobj_copy(env->values[i]);
+        }
+    }
+
+    return ideobj_err("Unbound symbol");
+}
+
+void ideenv_put(ideenv* env, ideobj* key, ideobj* val) {
+    for (int i=0; i<env->count; i++) {
+        if (strcmp(env->symbols[i], key->symbol) == 0) {
+            ideobj_del(env->values[i]);
+            env->values[i] = ideobj_copy(val);
+            return;
+        }
+    }
+
+    env->count++;
+    env->values = realloc(env->values, sizeof(ideobj*) * env->count);
+    env->symbols = realloc(env->symbols, sizeof(char*) * env->count);
+
+    env->values[env->count - 1] = ideobj_copy(val);
+    env->symbols[env->count - 1] = malloc(strlen(key->symbol) + 1);
+    strcpy(env->symbols[env->count - 1], key->symbol);
 }
 
 ideobj* eval_tenary_number_op(ideobj* left, char* operator, ideobj* right) {
@@ -211,9 +317,9 @@ ideobj* ideobj_take(ideobj* obj, int i) {
 #define IASSERT(args, cond, err) \
     if (!(cond)) { ideobj_del(args); return ideobj_err(err); }
 
-ideobj* ideobj_eval(ideobj* obj);
+ideobj* ideobj_eval(ideenv* env, ideobj* obj);
 
-ideobj* builtin_head(ideobj* obj) {
+ideobj* builtin_head(ideenv* env, ideobj* obj) {
     IASSERT(
         obj,
         obj->count == 1,
@@ -237,9 +343,7 @@ ideobj* builtin_head(ideobj* obj) {
     return first;
 }
 
-ideobj* builtin_tail(ideobj* obj) {
-    puts("builtin_tail");
-
+ideobj* builtin_tail(ideenv* env, ideobj* obj) {
     IASSERT(
         obj,
         obj->count == 1,
@@ -259,12 +363,12 @@ ideobj* builtin_tail(ideobj* obj) {
     return first;
 }
 
-ideobj* builtin_list(ideobj* obj) {
+ideobj* builtin_list(ideenv* env, ideobj* obj) {
     obj->type = IDEOBJ_QEXPR;
     return obj;
 }
 
-ideobj* builtin_eval(ideobj* obj) {
+ideobj* builtin_eval(ideenv* env, ideobj* obj) {
     IASSERT(
         obj,
         obj->count == 1,
@@ -279,7 +383,7 @@ ideobj* builtin_eval(ideobj* obj) {
     ideobj* first = ideobj_take(obj, 0);
 
     first->type = IDEOBJ_SEXPR;
-    return ideobj_eval(first);
+    return ideobj_eval(env, first);
 }
 
 ideobj* ideobj_join(ideobj* left, ideobj* right) {
@@ -291,7 +395,7 @@ ideobj* ideobj_join(ideobj* left, ideobj* right) {
     return left;
 }
 
-ideobj* builtin_join(ideobj* obj) {
+ideobj* builtin_join(ideenv* env, ideobj* obj) {
     for (int i=0; i<obj->count; i++) {
         IASSERT(
             obj,
@@ -308,8 +412,7 @@ ideobj* builtin_join(ideobj* obj) {
     return first;
 }
 
-
-ideobj* builtin_op(ideobj* obj, char* operator) {
+ideobj* builtin_op(ideenv* env, ideobj* obj, char* operator) {
     for (int i=0; i<obj->count; i++) {
         if (obj->cell[i]->type != IDEOBJ_NUM) {
             ideobj_del(obj);
@@ -333,23 +436,33 @@ ideobj* builtin_op(ideobj* obj, char* operator) {
     return acc_value;
 }
 
-ideobj* builtin(ideobj* obj, char* operator) {
-    if(strcmp("list", operator) == 0) { return builtin_list(obj); }
-    if(strcmp("head", operator) == 0) { return builtin_head(obj); }
-    if(strcmp("tail", operator) == 0) { return builtin_tail(obj); }
-    if(strcmp("join", operator) == 0) { return builtin_join(obj); }
-    if(strcmp("eval", operator) == 0) { return builtin_eval(obj); }
-
-    if(strstr("+-/*%^", operator)) {
-        return builtin_op(obj, operator);
-    }
-    ideobj_del(obj);
-    return ideobj_err("Invalid operator");
+ideobj* builtin_add(ideenv* env, ideobj* obj) {
+    return builtin_op(env, obj, "+");
 }
 
-ideobj* ideobj_eval_sexpr(ideobj* obj) {
+ideobj* builtin_sub(ideenv* env, ideobj* obj) {
+    return builtin_op(env, obj, "-");
+}
+
+ideobj* builtin_mul(ideenv* env, ideobj* obj) {
+    return builtin_op(env, obj, "*");
+}
+
+ideobj* builtin_div(ideenv* env, ideobj* obj) {
+    return builtin_op(env, obj, "/");
+}
+
+ideobj* builtin_mod(ideenv* env, ideobj* obj) {
+    return builtin_op(env, obj, "%");
+}
+
+ideobj* builtin_pow(ideenv* env, ideobj* obj) {
+    return builtin_op(env, obj, "^");
+}
+
+ideobj* ideobj_eval_sexpr(ideenv* env, ideobj* obj) {
     for (int i=0; i<obj->count; i++) {
-        obj->cell[i] = ideobj_eval(obj->cell[i]);
+        obj->cell[i] = ideobj_eval(env, obj->cell[i]);
     }
 
     for (int i=0; i<obj->count; i++) {
@@ -367,20 +480,26 @@ ideobj* ideobj_eval_sexpr(ideobj* obj) {
     }
 
     ideobj* first = ideobj_pop(obj, 0);
-    if (first->type != IDEOBJ_SYMBOL) {
+    if (first->type != IDEOBJ_FUN) {
         ideobj_del(first);
         ideobj_del(obj);
-        return ideobj_err("S-Expression does not start with symbol");
+        return ideobj_err("First element is not a functio");
     }
 
-    ideobj* result = builtin(obj, first->symbol);
+    ideobj* result = first->fun(env, obj);
     ideobj_del(first);
     return result;
 }
 
-ideobj* ideobj_eval(ideobj* obj) {
+ideobj* ideobj_eval(ideenv* env, ideobj* obj) {
+    if (obj->type == IDEOBJ_SYMBOL) {
+        ideobj* value = ideenv_get(env, obj);
+        ideobj_del(obj);
+        return value;
+    }
+
     if (obj->type == IDEOBJ_SEXPR) {
-        return ideobj_eval_sexpr(obj);
+        return ideobj_eval_sexpr(env, obj);
     }
     return obj;
 }
@@ -418,6 +537,30 @@ ideobj* ideobj_read(mpc_ast_t* node) {
     return acc_value;
 }
 
+void ideenv_add_builtin(ideenv* env, char* name, ibuiltin fn) {
+    ideobj *key = ideobj_symbol(name);
+    ideobj *fun = ideobj_fun(fn);
+
+    ideenv_put(env, key, fun);
+    ideobj_del(key);
+    ideobj_del(fun);
+}
+
+void ideenv_add_builtins(ideenv* env) {
+    ideenv_add_builtin(env, "head", builtin_head);
+    ideenv_add_builtin(env, "tail", builtin_tail);
+    ideenv_add_builtin(env, "list", builtin_list);
+    ideenv_add_builtin(env, "eval", builtin_eval);
+    ideenv_add_builtin(env, "join", builtin_join);
+
+    ideenv_add_builtin(env, "+", builtin_add);
+    ideenv_add_builtin(env, "-", builtin_sub);
+    ideenv_add_builtin(env, "*", builtin_mul);
+    ideenv_add_builtin(env, "/", builtin_div);
+    ideenv_add_builtin(env, "%", builtin_mod);
+    ideenv_add_builtin(env, "^", builtin_pow);
+}
+
 int main(int argc, char** argv) {
     puts("IdeLISP (type exit() to quit)");
 
@@ -431,14 +574,16 @@ int main(int argc, char** argv) {
     mpca_lang(MPCA_LANG_DEFAULT,
         "                                                                     \
             number   : /-?[0-9]+/ ;                                           \
-            symbol   : \"list\" | \"head\" | \"tail\" | \"join\" | \"eval\"   \
-                     | '+' | '-' | '*' | '/' | '%' | '^' | \"min\" | \"max\" ;\
+            symbol   : /[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&]+/ ;                    \
             sexpr    : '(' <expr>* ')' ;                                      \
             qexpr    : '{' <expr>* '}' ;                                      \
             expr     : <number> | <symbol> | <sexpr> | <qexpr> ;              \
             idelisp  : /^/ <expr>* /$/ ;                                      \
         "
         , Number, Symbol, Sexpr, Qexpr, Expr, IdeLISP);
+
+    ideenv* env = ideenv_new();
+    ideenv_add_builtins(env);
 
     while(1) {
         char* source = readline(">> ");
@@ -449,6 +594,7 @@ int main(int argc, char** argv) {
             mpc_ast_t* root_node = result.output;
 
             ideobj* v = ideobj_eval(
+                env,
                 ideobj_read(root_node)
             );
             ideobj_println(v);
@@ -460,6 +606,8 @@ int main(int argc, char** argv) {
 
         free(source);
     }
+
+    ideenv_del(env);
 
     mpc_cleanup(5, Number, Symbol, Sexpr, Qexpr, Expr, IdeLISP);
     return 0;
