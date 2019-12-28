@@ -1,9 +1,16 @@
 # IdeLISP
-This is a LISP i'm putting together while reading [Build Your Own Lisp](http://www.buildyourownlisp.com/)
+This is a LISP i'm putting together while reading [Build Your Own Lisp](http://www.buildyourownlisp.com/). Inspired by Lispy and Hy.
 
 ## Getting started
 - `make build`
 - `./bin/idelisp`
+
+## Example syntax
+
+```
+(set-v `(x) 1`)
+(+ x 1)
+```
 
 ## Debugging
 - Use lldb

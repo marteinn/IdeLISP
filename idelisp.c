@@ -436,6 +436,40 @@ ideobj* builtin_op(ideenv* env, ideobj* obj, char* operator) {
     return acc_value;
 }
 
+ideobj* builtin_setv(ideenv* env, ideobj* obj) {
+    IASSERT(
+        obj,
+        obj->cell[0]->type == IDEOBJ_QEXPR,
+        "First argument in set-v must be quoted"
+    );
+
+    ideobj* keys = obj->cell[0];
+
+    for (int i=0; i<keys->count; i++) {
+        IASSERT(
+            obj,
+            keys->cell[i]->type == IDEOBJ_SYMBOL,
+            "Function set-v cannot set non-symbol"
+        );
+    }
+
+    IASSERT(
+        obj,
+        keys->count == obj->count-1,
+        "set-v received incorrect number of names vs values"
+    );
+
+    for (int i=0; i<keys->count; i++) {
+        ideobj* key = keys->cell[i];
+        ideobj* value = obj->cell[i+1];
+
+        ideenv_put(env, key, value);
+    }
+
+    ideobj_del(obj);
+    return ideobj_sexpr();
+}
+
 ideobj* builtin_add(ideenv* env, ideobj* obj) {
     return builtin_op(env, obj, "+");
 }
@@ -526,6 +560,7 @@ ideobj* ideobj_read(mpc_ast_t* node) {
 
     for (int i=0; i<node->children_num; i++) {
         if (strcmp(node->children[i]->contents, "(") == 0) { continue; }
+        if (strcmp(node->children[i]->contents, "`(") == 0) { continue; }
         if (strcmp(node->children[i]->contents, ")") == 0) { continue; }
         if (strcmp(node->children[i]->contents, "{") == 0) { continue; }
         if (strcmp(node->children[i]->contents, "}") == 0) { continue; }
@@ -552,6 +587,7 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "list", builtin_list);
     ideenv_add_builtin(env, "eval", builtin_eval);
     ideenv_add_builtin(env, "join", builtin_join);
+    ideenv_add_builtin(env, "set-v", builtin_setv);
 
     ideenv_add_builtin(env, "+", builtin_add);
     ideenv_add_builtin(env, "-", builtin_sub);
@@ -576,7 +612,7 @@ int main(int argc, char** argv) {
             number   : /-?[0-9]+/ ;                                           \
             symbol   : /[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&]+/ ;                    \
             sexpr    : '(' <expr>* ')' ;                                      \
-            qexpr    : '{' <expr>* '}' ;                                      \
+            qexpr    : '{' <expr>* '}' | \"`(\" <expr>* ')' ;                 \
             expr     : <number> | <symbol> | <sexpr> | <qexpr> ;              \
             idelisp  : /^/ <expr>* /$/ ;                                      \
         "

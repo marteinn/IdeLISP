@@ -17,6 +17,27 @@
 - Number
 - Decimal
 
+## Globals
+
+### `set-v`
+
+```
+(set-v `(x) 1)
+x
+>> 1
+
+(set-v `(x y z) 1 2 3)
+z
+>> 3
+```
+
+## Macros
+
+```
+`(list 1 2 3)
+>>> {1 2 3}
+```
+
 ## Operator table
 
 | Operator  | Binary                         | Unary                           |
@@ -29,7 +50,7 @@
 | `min`     | Min value                      |                                 |
 | `max`     | Max value                      |                                 |
 
-## Macros
+## Builtins
 
 | Signature                                                                    |
 | ---------------------------------------------------------------------------- |
@@ -39,3 +60,4 @@
 | `join`                                                                       |
 | `list`                                                                       |
 | `join`                                                                       |
+| `setv`                                                                       |
