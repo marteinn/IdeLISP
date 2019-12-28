@@ -28,3 +28,14 @@
 | `^        | Exponent                       |                                 |
 | `min`     | Min value                      |                                 |
 | `max`     | Max value                      |                                 |
+
+## Macros
+
+| Signature                                                                    |
+| ---------------------------------------------------------------------------- |
+| `eval`                                                                       |
+| `head`                                                                       |
+| `tail`                                                                       |
+| `join`                                                                       |
+| `list`                                                                       |
+| `join`                                                                       |

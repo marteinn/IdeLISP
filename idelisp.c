@@ -183,44 +183,11 @@ ideobj* eval_op(ideobj* left, char* operator, ideobj* right) {
     return ideobj_err("Invalid operator");
 }
 
-ideobj* ideobj_read_num(mpc_ast_t* node) {
-    errno = 0;
-    long num = strtol(node->contents, NULL, 10);
-    if (errno == ERANGE) {
-        return ideobj_err("Invalid number");
-    }
-    return ideobj_num(num);
-}
-
 ideobj* ideobj_add(ideobj* left, ideobj* right) {
     left->count++;
     left->cell = realloc(left->cell, sizeof(ideobj*) * left->count);
     left->cell[left->count-1] = right;
     return left;
-}
-
-ideobj* ideobj_read(mpc_ast_t* node) {
-    if (strstr(node->tag, "number")) { return ideobj_read_num(node); }
-    if (strstr(node->tag, "symbol")) {
-        return ideobj_symbol(node->contents);
-    }
-
-    ideobj* acc_value = NULL;
-    if (strstr(node->tag, ">")) { acc_value = ideobj_sexpr(); }
-    if (strstr(node->tag, "sexpr")) { acc_value = ideobj_sexpr(); }
-    if (strstr(node->tag, "qexpr")) { acc_value = ideobj_qexpr(); }
-
-    for (int i=0; i<node->children_num; i++) {
-        if (strcmp(node->children[i]->contents, "(") == 0) { continue; }
-        if (strcmp(node->children[i]->contents, ")") == 0) { continue; }
-        if (strcmp(node->children[i]->contents, "{") == 0) { continue; }
-        if (strcmp(node->children[i]->contents, "}") == 0) { continue; }
-        if (strcmp(node->children[i]->tag, "regex") == 0) { continue; }
-
-        acc_value = ideobj_add(acc_value, ideobj_read(node->children[i]));
-    }
-
-    return acc_value;
 }
 
 ideobj* ideobj_pop(ideobj* obj, int i) {
@@ -240,6 +207,107 @@ ideobj* ideobj_take(ideobj* obj, int i) {
     ideobj_del(obj);
     return el;
 }
+
+#define IASSERT(args, cond, err) \
+    if (!(cond)) { ideobj_del(args); return ideobj_err(err); }
+
+ideobj* ideobj_eval(ideobj* obj);
+
+ideobj* builtin_head(ideobj* obj) {
+    IASSERT(
+        obj,
+        obj->count == 1,
+        "Function 'head' received wrong number of arguments, requires 1"
+    );
+    IASSERT(
+        obj,
+        obj->cell[0]->type == IDEOBJ_QEXPR,
+        "Function 'head' received wrong type"
+    );
+    IASSERT(
+        obj, obj->cell[0]->count != 0, "Function 'head' received empty list"
+    );
+
+    ideobj* first = ideobj_take(obj, 0);
+    while(first->count > 1) {
+        ideobj_del(
+            ideobj_pop(first, 1)
+        );
+    }
+    return first;
+}
+
+ideobj* builtin_tail(ideobj* obj) {
+    puts("builtin_tail");
+
+    IASSERT(
+        obj,
+        obj->count == 1,
+        "Function 'tail' received wrong number of arguments, requires 1"
+    );
+    IASSERT(
+        obj,
+        obj->cell[0]->type == IDEOBJ_QEXPR,
+        "Function 'tail' received wrong type"
+    );
+    IASSERT(
+        obj, obj->cell[0]->count != 0, "Function 'tail' received empty list"
+    );
+
+    ideobj* first = ideobj_take(obj, 0);
+    ideobj_del(ideobj_pop(first, 0));
+    return first;
+}
+
+ideobj* builtin_list(ideobj* obj) {
+    obj->type = IDEOBJ_QEXPR;
+    return obj;
+}
+
+ideobj* builtin_eval(ideobj* obj) {
+    IASSERT(
+        obj,
+        obj->count == 1,
+        "Function 'eval' received wrong number of arguments, requires 1"
+    );
+    IASSERT(
+        obj,
+        obj->cell[0]->type == IDEOBJ_QEXPR,
+        "Function 'eval' received wrong type"
+    );
+
+    ideobj* first = ideobj_take(obj, 0);
+
+    first->type = IDEOBJ_SEXPR;
+    return ideobj_eval(first);
+}
+
+ideobj* ideobj_join(ideobj* left, ideobj* right) {
+    while (right->count) {
+        left = ideobj_add(left, ideobj_pop(right, 0));
+    }
+
+    ideobj_del(right);
+    return left;
+}
+
+ideobj* builtin_join(ideobj* obj) {
+    for (int i=0; i<obj->count; i++) {
+        IASSERT(
+            obj,
+            obj->cell[i]->type == IDEOBJ_QEXPR,
+            "Function 'join' passed incorrect type"
+        );
+    }
+
+    ideobj* first = ideobj_pop(obj, 0);
+    while(obj->count) {
+        first = ideobj_join(first, ideobj_pop(obj, 0));
+    }
+
+    return first;
+}
+
 
 ideobj* builtin_op(ideobj* obj, char* operator) {
     for (int i=0; i<obj->count; i++) {
@@ -265,47 +333,11 @@ ideobj* builtin_op(ideobj* obj, char* operator) {
     return acc_value;
 }
 
-ideobj* ideobj_eval(ideobj* obj);
-
-#define IASSERT(args, cond, err) \
-    if (!(cond)) { ideobj_del(args); return ideobj_err(err); }
-
-ideobj* builtin_head(ideobj* obj) {
-    IASSERT(obj, obj->count == 1, "Function 'head' received wrong number of arguments, requires 1");
-
-    ideobj* first = ideobj_take(obj, 0);
-    while(first->count > 1) {
-        ideobj_del(
-            ideobj_pop(first, 1)
-        );
-    }
-    return first;
-}
-
-ideobj* builtin_tail(ideobj* obj) {
-    IASSERT(obj, obj->count == 1, "Function 'head' received wrong number of arguments, requires 1");
-
-    ideobj* first = ideobj_take(obj, 0);
-    ideobj_del(ideobj_pop(obj, 0));
-    return first;
-}
-
-ideobj* builtin_list(ideobj* obj) {
-    obj->type = IDEOBJ_QEXPR;
-    return obj;
-}
-
-ideobj* builtin_eval(ideobj* obj) {
-    ideobj* first = ideobj_take(obj, 0);
-
-    first->type = IDEOBJ_SEXPR;
-    return ideobj_eval(first);
-}
-
 ideobj* builtin(ideobj* obj, char* operator) {
+    if(strcmp("list", operator) == 0) { return builtin_list(obj); }
     if(strcmp("head", operator) == 0) { return builtin_head(obj); }
     if(strcmp("tail", operator) == 0) { return builtin_tail(obj); }
-    if(strcmp("list", operator) == 0) { return builtin_list(obj); }
+    if(strcmp("join", operator) == 0) { return builtin_join(obj); }
     if(strcmp("eval", operator) == 0) { return builtin_eval(obj); }
 
     if(strstr("+-/*%^", operator)) {
@@ -351,6 +383,39 @@ ideobj* ideobj_eval(ideobj* obj) {
         return ideobj_eval_sexpr(obj);
     }
     return obj;
+}
+
+ideobj* ideobj_read_num(mpc_ast_t* node) {
+    errno = 0;
+    long num = strtol(node->contents, NULL, 10);
+    if (errno == ERANGE) {
+        return ideobj_err("Invalid number");
+    }
+    return ideobj_num(num);
+}
+
+ideobj* ideobj_read(mpc_ast_t* node) {
+    if (strstr(node->tag, "number")) { return ideobj_read_num(node); }
+    if (strstr(node->tag, "symbol")) {
+        return ideobj_symbol(node->contents);
+    }
+
+    ideobj* acc_value = NULL;
+    if (strcmp(node->tag, ">") == 0) { acc_value = ideobj_sexpr(); }
+    if (strstr(node->tag, "sexpr")) { acc_value = ideobj_sexpr(); }
+    if (strstr(node->tag, "qexpr")) { acc_value = ideobj_qexpr(); }
+
+    for (int i=0; i<node->children_num; i++) {
+        if (strcmp(node->children[i]->contents, "(") == 0) { continue; }
+        if (strcmp(node->children[i]->contents, ")") == 0) { continue; }
+        if (strcmp(node->children[i]->contents, "{") == 0) { continue; }
+        if (strcmp(node->children[i]->contents, "}") == 0) { continue; }
+        if (strcmp(node->children[i]->tag, "regex") == 0) { continue; }
+
+        acc_value = ideobj_add(acc_value, ideobj_read(node->children[i]));
+    }
+
+    return acc_value;
 }
 
 int main(int argc, char** argv) {
