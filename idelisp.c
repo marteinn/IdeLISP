@@ -496,6 +496,11 @@ ideobj* builtin_setv(ideenv* env, ideobj* obj) {
     return ideobj_sexpr();
 }
 
+ideobj* builtin_exit(ideenv* env, ideobj* obj) {
+    ideobj_del(obj);
+    exit(0);
+}
+
 ideobj* builtin_add(ideenv* env, ideobj* obj) {
     return builtin_op(env, obj, "+");
 }
@@ -618,6 +623,7 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "eval", builtin_eval);
     ideenv_add_builtin(env, "join", builtin_join);
     ideenv_add_builtin(env, "set-v", builtin_setv);
+    ideenv_add_builtin(env, "exit", builtin_exit);
 
     ideenv_add_builtin(env, "+", builtin_add);
     ideenv_add_builtin(env, "-", builtin_sub);

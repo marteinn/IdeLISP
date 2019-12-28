@@ -31,6 +31,14 @@ z
 >> 3
 ```
 
+### `exit`
+
+Exits the prompt.
+
+```
+exit ()
+```
+
 ## Macros
 
 ```
