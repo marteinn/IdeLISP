@@ -39,12 +39,19 @@ struct ideenv {
 };
 
 
-ideobj* ideobj_err(char* err) {
+ideobj* ideobj_err(char* format, ...) {
     ideobj* obj = malloc(sizeof(ideobj));
-
     obj->type = IDEOBJ_ERR;
-    obj->err = malloc(strlen(err) + 1);
-    strcpy(obj->err, err);
+
+    va_list value_list;
+    va_start(value_list, format);
+
+    obj->err = malloc(512);
+    vsnprintf(obj->err, 511, format, value_list);
+
+    obj->err = realloc(obj->err, strlen(obj->err)+1);
+    va_end(value_list);
+
     return obj;
 }
 
@@ -97,6 +104,18 @@ ideobj* ideobj_fun(ibuiltin fun) {
     obj->type = IDEOBJ_FUN;
     obj->fun = fun;
     return obj;
+}
+
+char* ideobj_name(int type) {
+    switch (type) {
+        case IDEOBJ_ERR: return "Error";
+        case IDEOBJ_SYMBOL: return "Symbol";
+        case IDEOBJ_NUM: return "Number";
+        case IDEOBJ_FUN: return "Function";
+        case IDEOBJ_QEXPR: return "Quoted Expression";
+        case IDEOBJ_SEXPR: return "S-Expression";
+        default: return "Unknown";
+    }
 }
 
 void ideobj_del(ideobj* obj) {
@@ -220,7 +239,7 @@ ideobj* ideenv_get(ideenv* env, ideobj* key) {
         }
     }
 
-    return ideobj_err("Unbound symbol");
+    return ideobj_err("Unbound symbol '%s'", key->symbol);
 }
 
 void ideenv_put(ideenv* env, ideobj* key, ideobj* val) {
@@ -286,7 +305,7 @@ ideobj* eval_op(ideobj* left, char* operator, ideobj* right) {
         return eval_tenary_number_op(left, operator, right);
     }
 
-    return ideobj_err("Invalid operator");
+    return ideobj_err("Invalid operator '%s'", operator);
 }
 
 ideobj* ideobj_add(ideobj* left, ideobj* right) {
@@ -314,8 +333,12 @@ ideobj* ideobj_take(ideobj* obj, int i) {
     return el;
 }
 
-#define IASSERT(args, cond, err) \
-    if (!(cond)) { ideobj_del(args); return ideobj_err(err); }
+#define IASSERT(args, cond, format, ...) \
+    if (!(cond)) { \
+        ideobj* error = ideobj_err(format, ##__VA_ARGS__); \
+        ideobj_del(args); \
+        return error; \
+    }
 
 ideobj* ideobj_eval(ideenv* env, ideobj* obj);
 
@@ -324,11 +347,14 @@ ideobj* builtin_head(ideenv* env, ideobj* obj) {
         obj,
         obj->count == 1,
         "Function 'head' received wrong number of arguments, requires 1"
+        "got %i, expected %i", obj->count, 1
     );
     IASSERT(
         obj,
         obj->cell[0]->type == IDEOBJ_QEXPR,
-        "Function 'head' received wrong type"
+        "Function 'head' received wrong type, got %s, expected %s",
+        ideobj_name(obj->cell[0]->type),
+        ideobj_name(IDEOBJ_QEXPR)
     );
     IASSERT(
         obj, obj->cell[0]->count != 0, "Function 'head' received empty list"
@@ -517,7 +543,11 @@ ideobj* ideobj_eval_sexpr(ideenv* env, ideobj* obj) {
     if (first->type != IDEOBJ_FUN) {
         ideobj_del(first);
         ideobj_del(obj);
-        return ideobj_err("First element is not a functio");
+        return ideobj_err(
+            "Invalid first element, expected %s, got %s",
+            ideobj_name(IDEOBJ_FUN),
+            ideobj_name(first->type)
+        );
     }
 
     ideobj* result = first->fun(env, obj);

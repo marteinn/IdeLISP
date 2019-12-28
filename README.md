@@ -8,7 +8,7 @@ This is a LISP i'm putting together while reading [Build Your Own Lisp](http://w
 ## Example syntax
 
 ```
-(set-v `(x) 1`)
+(set-v `(x) 1)
 (+ x 1)
 ```
 
@@ -21,10 +21,3 @@ This is a LISP i'm putting together while reading [Build Your Own Lisp](http://w
 - [Polish notation](https://en.wikipedia.org/wiki/Polish_notation)
 - [MPC](https://github.com/orangeduck/mpc)
 - [Cons](https://en.wikipedia.org/wiki/Cons)
-
-## Ref
-- `atoi`
-- `strstr`
-- `strcmp`
-- `strcpy`
-- `memmove`
