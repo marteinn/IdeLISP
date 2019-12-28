@@ -294,7 +294,7 @@ ideobj* eval_tenary_number_op(ideobj* left, char* operator, ideobj* right) {
         return ideobj_num(left->num > right->num ? left->num : right->num);
     }
 
-    return ideobj_err("Invalid operator");
+    return ideobj_err("Invalid operator '%s'", operator);
 }
 
 ideobj* eval_op(ideobj* left, char* operator, ideobj* right) {
@@ -525,6 +525,14 @@ ideobj* builtin_pow(ideenv* env, ideobj* obj) {
     return builtin_op(env, obj, "^");
 }
 
+ideobj* builtin_min(ideenv* env, ideobj* obj) {
+    return builtin_op(env, obj, "min");
+}
+
+ideobj* builtin_max(ideenv* env, ideobj* obj) {
+    return builtin_op(env, obj, "max");
+}
+
 ideobj* ideobj_eval_sexpr(ideenv* env, ideobj* obj) {
     for (int i=0; i<obj->count; i++) {
         obj->cell[i] = ideobj_eval(env, obj->cell[i]);
@@ -631,6 +639,8 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "/", builtin_div);
     ideenv_add_builtin(env, "%", builtin_mod);
     ideenv_add_builtin(env, "^", builtin_pow);
+    ideenv_add_builtin(env, "min", builtin_min);
+    ideenv_add_builtin(env, "max", builtin_max);
 }
 
 int main(int argc, char** argv) {
