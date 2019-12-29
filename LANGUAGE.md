@@ -61,6 +61,15 @@ Function constructor
 >> 4
 ```
 
+
+#### Variadic function
+
+```
+(let '(show-all) (fn '(&rest rest) '(print rest)))
+(show-all 1 2 3)
+>> '(1 2 3)
+```
+
 ## Macros
 
 ```

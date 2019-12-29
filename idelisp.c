@@ -576,7 +576,7 @@ ideobj* builtin_var(ideenv* env, ideobj* obj, char* func) {
     IASSERT(
         obj,
         keys->count == obj->count-1,
-        "set-v received incorrect number of names vs values"
+        "Function received incorrect number of names vs values"
     );
 
     for (int i=0; i<keys->count; i++) {
@@ -631,6 +631,12 @@ ideobj* builtin_exit(ideenv* env, ideobj* obj) {
     exit(0);
 }
 
+ideobj* builtin_print(ideenv* env, ideobj* obj) {
+    ideobj_println(obj);
+    ideobj_del(obj);
+    return ideobj_sexpr();
+}
+
 ideobj* builtin_add(ideenv* env, ideobj* obj) {
     return builtin_op(env, obj, "+");
 }
@@ -682,11 +688,27 @@ ideobj* ideobj_call_fun(ideenv* env, ideobj* fun, ideobj* args) {
             );
         }
 
-        ideobj *arg = ideobj_pop(fun->params, 0);
+        ideobj *param = ideobj_pop(fun->params, 0);
+
+        if (strcmp(param->symbol, "&rest") == 0) {
+            if (fun->params->count != 1) {
+                ideobj_del(args);
+                return ideobj_err(
+                    "Invalid function format, &rest must be followed by symbol"
+                );
+            }
+
+            ideobj *rest_param = ideobj_pop(fun->params, 0);
+            ideenv_put(env, rest_param, builtin_list(env, args));
+            ideobj_del(param);
+            ideobj_del(rest_param);
+            break;
+        }
+
         ideobj *value = ideobj_pop(args, 0);
 
-        ideenv_put(fun->env, arg, value);
-        ideobj_del(arg);
+        ideenv_put(fun->env, param, value);
+        ideobj_del(param);
         ideobj_del(value);
     }
 
@@ -814,6 +836,7 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "def", builtin_def);
     ideenv_add_builtin(env, "let", builtin_let);
     ideenv_add_builtin(env, "exit", builtin_exit);
+    ideenv_add_builtin(env, "print", builtin_print);
     ideenv_add_builtin(env, "fn", builtin_fun);
 
     ideenv_add_builtin(env, "+", builtin_add);
