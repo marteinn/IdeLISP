@@ -26,8 +26,5 @@ This is a LISP i'm putting together while reading [Build Your Own Lisp](http://w
 - [MPC](https://github.com/orangeduck/mpc)
 - [Cons](https://en.wikipedia.org/wiki/Cons)
 
-## TODO
-- Remove `{}` syntax altogether
-
 ## The name?
 Its a pun on the french name for dogmatix in Asterix/Obelix, which is Idéfix.

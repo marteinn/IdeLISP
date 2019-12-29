@@ -204,8 +204,8 @@ ideobj* ideobj_copy(ideobj* obj) {
 
 void ideobj_print(ideobj* obj);
 
-void ideobj_expr_print(ideobj* obj, char open, char close) {
-    putchar(open);
+void ideobj_expr_print(ideobj* obj, char* open, char* close) {
+    printf("%s", open);
 
     for (int i=0; i<obj->count; i++) {
         if (i > 0) {
@@ -214,7 +214,7 @@ void ideobj_expr_print(ideobj* obj, char open, char close) {
         ideobj_print(obj->cell[i]);
     }
 
-    putchar(close);
+    printf("%s", close);
 }
 
 void ideobj_print(ideobj* obj) {
@@ -232,10 +232,10 @@ void ideobj_print(ideobj* obj) {
             printf("%s", obj->symbol);
             break;
         case IDEOBJ_SEXPR:
-            ideobj_expr_print(obj, '(', ')');
+            ideobj_expr_print(obj, "(", ")");
             break;
         case IDEOBJ_QEXPR:
-            ideobj_expr_print(obj, '{', '}');
+            ideobj_expr_print(obj, "'(", ")");
             break;
         case IDEOBJ_BUILTIN:
             printf("<function>");
