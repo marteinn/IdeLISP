@@ -784,7 +784,7 @@ ideobj* ideobj_read(mpc_ast_t* node) {
 
     for (int i=0; i<node->children_num; i++) {
         if (strcmp(node->children[i]->contents, "(") == 0) { continue; }
-        if (strcmp(node->children[i]->contents, "`(") == 0) { continue; }
+        if (strcmp(node->children[i]->contents, "'(") == 0) { continue; }
         if (strcmp(node->children[i]->contents, ")") == 0) { continue; }
         if (strcmp(node->children[i]->contents, "{") == 0) { continue; }
         if (strcmp(node->children[i]->contents, "}") == 0) { continue; }
@@ -841,7 +841,7 @@ int main(int argc, char** argv) {
             number   : /-?[0-9]+/ ;                                           \
             symbol   : /[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&]+/ ;                    \
             sexpr    : '(' <expr>* ')' ;                                      \
-            qexpr    : '{' <expr>* '}' | \"`(\" <expr>* ')' ;                 \
+            qexpr    : '{' <expr>* '}' | \"'(\" <expr>* ')' ;                 \
             expr     : <number> | <symbol> | <sexpr> | <qexpr> ;              \
             idelisp  : /^/ <expr>* /$/ ;                                      \
         "

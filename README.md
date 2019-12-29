@@ -8,11 +8,11 @@ This is a LISP i'm putting together while reading [Build Your Own Lisp](http://w
 ## Example syntax
 
 ```
-(def `(x) 1)
+(def '(x) 1)
 (+ x 1)
-(let `(combine) (fn `(x y) `(+ x y)))
+(let '(combine) (fn '(x y) '(+ x y)))
 (combine 2 1)
-(let `(plus-two) (fn `(x) `(+ 2 x)))
+(let '(plus-two) (fn '(x) '(+ 2 x)))
 (plus-two 2)
 ```
 

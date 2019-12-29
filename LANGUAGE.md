@@ -24,11 +24,11 @@
 Set global variables
 
 ```
-(def `(x) 1)
+(def '(x) 1)
 x
 >> 1
 
-(def `(x y z) 1 2 3)
+(def '(x y z) 1 2 3)
 z
 >> 3
 ```
@@ -38,7 +38,7 @@ z
 Set local variables
 
 ```
-(let `(x) 1)
+(let '(x) 1)
 x
 >> 1
 ```
@@ -56,7 +56,7 @@ exit ()
 Function constructor
 
 ```
-(let `(plus-two) (fn `(x) `(+ 2 x)))
+(let '(plus-two) (fn '(x) '(+ 2 x)))
 (plus-two 2)
 >> 4
 ```
