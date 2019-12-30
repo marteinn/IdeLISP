@@ -238,6 +238,23 @@ int ideobj_eq(ideobj* left, ideobj* right) {
     return 0;
 }
 
+int ideobj_truthy(ideobj* obj) {
+    switch (obj->type) {
+        case IDEOBJ_NUM:
+            return obj->num == 1;
+        case IDEOBJ_ERR:
+        case IDEOBJ_SYMBOL:
+        case IDEOBJ_BUILTIN:
+        case IDEOBJ_FUN:
+            return 1;
+        case IDEOBJ_QEXPR:
+        case IDEOBJ_SEXPR:
+            return obj->count > 0;
+    }
+
+    return 0;
+}
+
 void ideobj_print(ideobj* obj);
 
 void ideobj_expr_print(ideobj* obj, char* open, char* close) {
@@ -831,22 +848,12 @@ ideobj* builtin_if(ideenv* env, ideobj* obj) {
     return result;
 }
 
-ideobj* builtin_and(ideenv* env, ideobj* obj) {
-    for (int i=0; i<obj->count; i++) {
-        IASSERT(
-            obj,
-            obj->cell[i]->type == IDEOBJ_NUM,
-            "Function 'and' received wrong type, got %s, expected %s",
-            idetype_name(obj->type),
-            idetype_name(IDEOBJ_NUM)
-        );
-    }
 
+ideobj* builtin_and(ideenv* env, ideobj* obj) {
     int status = 1;
 
     for (int i=0; i<obj->count; i++) {
-        // TODO: Replace with truthy
-        if (obj->cell[i]->num == 0) {
+        if (ideobj_truthy(obj->cell[i]) == 0) {
             status = 0;
             break;
         }
@@ -857,22 +864,25 @@ ideobj* builtin_and(ideenv* env, ideobj* obj) {
 }
 
 ideobj* builtin_or(ideenv* env, ideobj* obj) {
-    for (int i=0; i<obj->count; i++) {
-        IASSERT(
-            obj,
-            obj->cell[i]->type == IDEOBJ_NUM,
-            "Function 'and' received wrong type, got %s, expected %s",
-            idetype_name(obj->type),
-            idetype_name(IDEOBJ_NUM)
-        );
-    }
-
     int status = 0;
 
     for (int i=0; i<obj->count; i++) {
-        // TODO: Replace with truthy
-        if (obj->cell[i]->num == 1) {
+        if (ideobj_truthy(obj->cell[i]) == 1) {
             status = 1;
+            break;
+        }
+    }
+
+    ideobj_del(obj);
+    return ideobj_num(status);
+}
+
+ideobj* builtin_not(ideenv* env, ideobj* obj) {
+    int status = 1;
+
+    for (int i=0; i<obj->count; i++) {
+        if (ideobj_truthy(obj->cell[i]) == 1) {
+            status = 0;
             break;
         }
     }
@@ -1069,6 +1079,7 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "!=", builtin_neq);
     ideenv_add_builtin(env, "and", builtin_and);
     ideenv_add_builtin(env, "or", builtin_or);
+    ideenv_add_builtin(env, "not", builtin_not);
     ideenv_add_builtin(env, "if", builtin_if);
 }
 

@@ -114,6 +114,7 @@ Creates a lambda function
 | `>=`      | Greater or eqal than           |                                 |
 | `and`     | Logical and                    |                                 |
 | `or`      | Logical or                     |                                 |
+| `not`     | Logical negation               | Logical negation                |
 
 ## Builtins
 
