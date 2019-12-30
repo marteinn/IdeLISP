@@ -47,6 +47,7 @@ IdeLISP (type exit() to quit)
 )
 (not 0)
 ; I am a comment
+(load "curry.ilisp")
 ```
 
 

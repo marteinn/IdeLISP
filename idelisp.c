@@ -49,6 +49,15 @@ struct ideenv {
     ideobj** values;
 };
 
+mpc_parser_t* Number;
+mpc_parser_t* String;
+mpc_parser_t* Symbol;
+mpc_parser_t* Comment;
+mpc_parser_t* Sexpr;
+mpc_parser_t* Qexpr;
+mpc_parser_t* Expr;
+mpc_parser_t* IdeLISP;
+
 
 ideenv* ideenv_new(void);       // Forward declaration
 
@@ -933,6 +942,40 @@ ideobj* builtin_not(ideenv* env, ideobj* obj) {
     return ideobj_num(status);
 }
 
+ideobj* ideobj_read(mpc_ast_t* node);
+
+ideobj* builtin_load(ideenv* env, ideobj *obj) {
+    IASSERT_NUM("load", obj, 1);
+    IASSERT_TYPE("load", obj, 1, IDEOBJ_STR);
+
+    mpc_result_t result;
+    if (mpc_parse_contents(obj->cell[0]->str, IdeLISP, &result)) {
+        ideobj* expressions = ideobj_read(result.output);
+        mpc_ast_delete(result.output);
+
+        while (expressions->count) {
+            ideobj* expression = ideobj_eval(env, ideobj_pop(expressions, 0));
+            if (expression->type == IDEOBJ_ERR) {
+              return expression;
+            }
+            ideobj_del(expression);
+        }
+
+        ideobj_del(expressions);
+        ideobj_del(obj);
+        return ideobj_sexpr();
+    } else {
+        char* result_err = mpc_err_string(result.error);
+        mpc_err_delete(result.error);
+
+        ideobj* err = ideobj_err("Could not load module %s", obj->cell[0]->str);
+        free(result_err);
+        ideobj_del(obj);
+
+        return err;
+    }
+}
+
 ideobj* ideobj_call_builtin(ideenv* env, ideobj* fun, ideobj* args) {
     return fun->builtin(env, args);
 }
@@ -1117,6 +1160,7 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "print", builtin_print);
     ideenv_add_builtin(env, "fn", builtin_fn);
     ideenv_add_builtin(env, "defn", builtin_defn);
+    ideenv_add_builtin(env, "load", builtin_load);
 
     ideenv_add_builtin(env, "+", builtin_add);
     ideenv_add_builtin(env, "-", builtin_sub);
@@ -1153,14 +1197,14 @@ int main(int argc, char** argv) {
         }
     }
 
-    mpc_parser_t* Number = mpc_new("number");
-    mpc_parser_t* String = mpc_new("string");
-    mpc_parser_t* Symbol = mpc_new("symbol");
-    mpc_parser_t* Comment = mpc_new("comment");
-    mpc_parser_t* Sexpr = mpc_new("sexpr");
-    mpc_parser_t* Qexpr = mpc_new("qexpr");
-    mpc_parser_t* Expr = mpc_new("expr");
-    mpc_parser_t* IdeLISP = mpc_new("idelisp");
+    Number = mpc_new("number");
+    String = mpc_new("string");
+    Symbol = mpc_new("symbol");
+    Comment = mpc_new("comment");
+    Sexpr = mpc_new("sexpr");
+    Qexpr = mpc_new("qexpr");
+    Expr = mpc_new("expr");
+    IdeLISP = mpc_new("idelisp");
 
     mpca_lang(MPCA_LANG_DEFAULT,
         "                                                                     \

@@ -114,7 +114,7 @@ Creates a lambda function
 | `>=`      | Greater or eqal than           |                                 |
 | `and`     | Logical and                    |                                 |
 | `or`      | Logical or                     |                                 |
-| `not`     | Logical negation               | Logical negation                |
+| `not`     |                                | Logical negation                |
 
 ## Builtins
 
@@ -127,3 +127,9 @@ Creates a lambda function
 | `list`                                                                       |
 | `join`                                                                       |
 | `setv`                                                                       |
+
+## External modules
+
+```
+(load "standard.ilisp")
+```
