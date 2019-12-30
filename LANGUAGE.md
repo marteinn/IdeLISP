@@ -51,6 +51,16 @@ Exits the prompt.
 exit ()
 ```
 
+## If
+
+```
+(if (== 1 1)
+    '(+ 1 1)
+    '(+ 2 2)
+)
+>> 4
+```
+
 ## Functions
 
 ### `defn`

@@ -805,6 +805,32 @@ ideobj* builtin_neq(ideenv* env, ideobj* obj) {
     return builtin_cmp(env, obj, "!=");
 }
 
+ideobj* builtin_if(ideenv* env, ideobj* obj) {
+    IASSERT_NUM("if", obj, 3);
+    IASSERT_TYPE("if", obj, 0, IDEOBJ_NUM);
+    IASSERT_TYPE("if", obj, 1, IDEOBJ_QEXPR);
+    IASSERT_TYPE("if", obj, 2, IDEOBJ_QEXPR);
+
+    ideobj* condition = ideobj_pop(obj, 0);
+    ideobj* consequence = ideobj_pop(obj, 0);
+    ideobj* alternative = ideobj_pop(obj, 0);
+
+    ideobj_del(condition);
+
+    consequence->type = IDEOBJ_SEXPR;
+    alternative->type = IDEOBJ_SEXPR;
+
+    ideobj* result;
+    if (condition->num == 1) {
+        result = ideobj_eval(env, consequence);
+    } else {
+        result = ideobj_eval(env, alternative);
+    }
+
+    ideobj_del(obj);
+    return result;
+}
+
 ideobj* ideobj_call_builtin(ideenv* env, ideobj* fun, ideobj* args) {
     return fun->builtin(env, args);
 }
@@ -991,6 +1017,7 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "<=", builtin_lte);
     ideenv_add_builtin(env, "==", builtin_eq);
     ideenv_add_builtin(env, "!=", builtin_neq);
+    ideenv_add_builtin(env, "if", builtin_if);
 }
 
 enum { RUNMODE_REPL, RUNMODE_FILE };

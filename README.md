@@ -37,6 +37,10 @@ IdeLISP (type exit() to quit)
 (let '(combine) (fn '(x y) '(+ x y)))
 (combine 2 1)
 (== 1 1)
+(if (== 1 1)
+    '(print 1)
+    '(print 2)
+)
 ```
 
 
