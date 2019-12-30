@@ -878,6 +878,8 @@ ideobj* builtin_or(ideenv* env, ideobj* obj) {
 }
 
 ideobj* builtin_not(ideenv* env, ideobj* obj) {
+    IASSERT_NUM("not", obj, 1);
+
     int status = 1;
 
     for (int i=0; i<obj->count; i++) {
