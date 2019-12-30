@@ -51,9 +51,21 @@ Exits the prompt.
 exit ()
 ```
 
+## Functions
+
+### `defn`
+
+Creates function and adds it to the global scope
+
+```
+(defn '(plus-two) '(x) '(+ 2 x))
+(plus-two 2)
+>> 4
+```
+
 ### `fn`
 
-Function constructor
+Creates a lambda function
 
 ```
 (let '(plus-two) (fn '(x) '(+ 2 x)))
@@ -61,11 +73,10 @@ Function constructor
 >> 4
 ```
 
-
 #### Variadic function
 
 ```
-(let '(show-all) (fn '(&rest rest) '(print rest)))
+(defn '(show-all) '(&rest rest) '(print rest))
 (show-all 1 2 3)
 >> '(1 2 3)
 ```

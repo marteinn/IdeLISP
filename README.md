@@ -8,12 +8,14 @@ This is a LISP i'm putting together while reading [Build Your Own Lisp](http://w
 ## Example syntax
 
 ```
+(+ 1 2)
+(* (+ 2 3) (* 2 3))
 (def '(x) 1)
 (+ x 1)
+(defn '(plus-two) '(x) '(+ 2 x))
+(plus-two 2)
 (let '(combine) (fn '(x y) '(+ x y)))
 (combine 2 1)
-(let '(plus-two) (fn '(x) '(+ 2 x)))
-(plus-two 2)
 ```
 
 ## Debugging
@@ -28,7 +30,7 @@ This is a LISP i'm putting together while reading [Build Your Own Lisp](http://w
 - [Common Lisp](https://en.wikipedia.org/wiki/Common_Lisp)
 
 ## TODO
-- Add builtin for defining function, ex `defun`
+x Add builtin for defining function, ex `defun`
 - Add builtin for `print`
 
 ## The name?
