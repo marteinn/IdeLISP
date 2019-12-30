@@ -1224,38 +1224,36 @@ int main(int argc, char** argv) {
     ideenv_add_builtins(env);
 
     if (run_mode == RUNMODE_FILE) {
-        FILE *file = fopen(source_file, "rb");
-        if (file == NULL) {
-            perror("Error");
-            return 1;
-        }
-
-        fseek(file, 0, SEEK_END);
-        long file_size = ftell(file);
-        fseek(file, 0, SEEK_SET);
-
-        char *source = malloc(file_size + 1);
-        fread(source, 1, file_size, file);
-        fclose(file);
-        source[file_size] = 0;
-
         mpc_result_t result;
-        if (mpc_parse("input", source, IdeLISP, &result)) {
-            mpc_ast_t* root_node = result.output;
+        int status;
+        if (mpc_parse_contents(source_file, IdeLISP, &result)) {
+            ideobj* expressions = ideobj_read(result.output);
+            mpc_ast_delete(result.output);
 
-            ideobj* v = ideobj_eval(
-                env,
-                ideobj_read(root_node)
-            );
-            ideobj_println(v);
-            ideobj_del(v);
+            while (expressions->count) {
+                ideobj* expression = ideobj_eval(env, ideobj_pop(expressions, 0));
+                if (expression->type == IDEOBJ_ERR) {
+                    ideobj_println(expression);
+                    ideobj_del(expression);
+                    status = 1;
+                    break;
+                }
+
+                if (expressions->count == 0) {
+                    ideobj_println(expression);
+                }
+                ideobj_del(expression);
+            }
+
+            ideobj_del(expressions);
+            status = 0;
         } else {
             mpc_err_print(result.error);
+            status = 1;
         }
-        mpc_ast_delete(result.output);
 
-        free(source);
-        return 0;
+        mpc_cleanup(8, Number, String, Symbol, Comment, Sexpr, Qexpr, Expr, IdeLISP);
+        return status;
     }
 
     puts("IdeLISP (type exit() to quit)");
