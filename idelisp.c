@@ -793,6 +793,7 @@ ideobj* builtin_cmp(ideenv* env, ideobj* obj, char* operator) {
         status = ideobj_eq(left, right) == 0;
     }
 
+    ideobj_del(obj);
     return ideobj_num(status);
 }
 
