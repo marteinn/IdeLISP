@@ -41,6 +41,10 @@ IdeLISP (type exit() to quit)
     '(print 1)
     '(print 2)
 )
+(if (and (== 1 1) (!= 1 0))
+    '(print 1)
+    '(print 2)
+)
 ```
 
 

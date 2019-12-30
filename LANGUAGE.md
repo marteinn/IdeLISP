@@ -54,10 +54,7 @@ exit ()
 ## If
 
 ```
-(if (== 1 1)
-    '(+ 1 1)
-    '(+ 2 2)
-)
+(if (== 1 1) '(+ 1 1) '(+ 2 2))
 >> 4
 ```
 
@@ -115,6 +112,8 @@ Creates a lambda function
 | `>`       | Greater than                   |                                 |
 | `<=`      | Less or eqal than              |                                 |
 | `>=`      | Greater or eqal than           |                                 |
+| `and`     | Logical and                    |                                 |
+| `or`      | Logical or                     |                                 |
 
 ## Builtins
 
