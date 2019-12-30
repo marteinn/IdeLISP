@@ -12,7 +12,8 @@ enum {
     IDEOBJ_QEXPR,
     IDEOBJ_DECIMAL,
     IDEOBJ_BUILTIN,
-    IDEOBJ_FUN
+    IDEOBJ_FUN,
+    IDEOBJ_STR
 };
 
 
@@ -30,6 +31,7 @@ struct ideobj {
     double decimal;
     char* err;
     char* symbol;
+    char* str;
     ibuiltin builtin;
 
     ideenv* env;
@@ -127,6 +129,15 @@ ideobj* ideobj_fun(ideobj* params, ideobj* body) {
     return obj;
 }
 
+ideobj* ideobj_str(char* str) {
+    ideobj* obj = malloc(sizeof(ideobj));
+
+    obj->type = IDEOBJ_STR;
+    obj->str = malloc(strlen(str) + 1);
+    strcpy(obj->str, str);
+    return obj;
+}
+
 char* idetype_name(int type) {
     switch (type) {
         case IDEOBJ_ERR: return "Error";
@@ -135,6 +146,7 @@ char* idetype_name(int type) {
         case IDEOBJ_BUILTIN: return "Function";
         case IDEOBJ_QEXPR: return "Quoted Expression";
         case IDEOBJ_SEXPR: return "S-Expression";
+        case IDEOBJ_STR: return "String";
         default: return "Unknown";
     }
 }
@@ -158,6 +170,8 @@ void ideobj_del(ideobj* obj) {
                 ideobj_del(obj->cell[i]);
             }
             free(obj->cell);
+            break;
+        case IDEOBJ_STR: free(obj->str); break;
     }
 
     free(obj);
@@ -198,6 +212,10 @@ ideobj* ideobj_copy(ideobj* obj) {
             copy->params = ideobj_copy(obj->params);
             copy->body = ideobj_copy(obj->body);
             break;
+        case IDEOBJ_STR:
+            copy->str = malloc(strlen(obj->str) + 1);
+            strcpy(copy->str, obj->str);
+            break;
     }
 
     return copy;
@@ -233,6 +251,8 @@ int ideobj_eq(ideobj* left, ideobj* right) {
             }
 
             return 1;
+        case IDEOBJ_STR:
+            return strcmp(left->str, right->str) == 0;
     }
 
     return 0;
@@ -250,6 +270,8 @@ int ideobj_truthy(ideobj* obj) {
         case IDEOBJ_QEXPR:
         case IDEOBJ_SEXPR:
             return obj->count > 0;
+        case IDEOBJ_STR:
+            return strlen(obj->str) > 0;
     }
 
     return 0;
@@ -268,6 +290,16 @@ void ideobj_expr_print(ideobj* obj, char* open, char* close) {
     }
 
     printf("%s", close);
+}
+
+void lval_print_str(ideobj* obj) {
+    char* escaped = malloc(strlen(obj->str)+1);
+    strcpy(escaped, obj->str);
+
+    escaped = mpcf_escape(escaped);
+    printf("\"%s\"", escaped);
+
+    free(escaped);
 }
 
 void ideobj_print(ideobj* obj) {
@@ -299,6 +331,9 @@ void ideobj_print(ideobj* obj) {
             putchar(' ');
             ideobj_print(obj->body);
             putchar(')');
+            break;
+        case IDEOBJ_STR:
+            lval_print_str(obj);
             break;
     }
 }
@@ -714,8 +749,13 @@ ideobj* builtin_exit(ideenv* env, ideobj* obj) {
 }
 
 ideobj* builtin_print(ideenv* env, ideobj* obj) {
-    ideobj_println(obj);
+    for (int i=0; i<obj->count; i++) {
+        ideobj_print(obj->cell[i]);
+        putchar(' ');
+    }
+
     ideobj_del(obj);
+    putchar('\n');
     return ideobj_sexpr();
 }
 
@@ -1017,8 +1057,21 @@ ideobj* ideobj_read_num(mpc_ast_t* node) {
     return ideobj_num(num);
 }
 
+ideobj* ideobj_read_string(mpc_ast_t* node) {
+    node->contents[strlen(node->contents)-1] = '\0';
+
+    char* unescaped = malloc(strlen(node->contents+1)+1);
+    strcpy(unescaped, node->contents+1);
+
+    unescaped = mpcf_unescape(unescaped);
+    ideobj* obj = ideobj_str(unescaped);
+    free(unescaped);
+    return obj;
+}
+
 ideobj* ideobj_read(mpc_ast_t* node) {
     if (strstr(node->tag, "number")) { return ideobj_read_num(node); }
+    if (strstr(node->tag, "string")) { return ideobj_read_string(node); }
     if (strstr(node->tag, "symbol")) {
         return ideobj_symbol(node->contents);
     }
@@ -1029,6 +1082,7 @@ ideobj* ideobj_read(mpc_ast_t* node) {
     if (strstr(node->tag, "qexpr")) { acc_value = ideobj_qexpr(); }
 
     for (int i=0; i<node->children_num; i++) {
+        if (strstr(node->children[i]->tag, "comment")) { continue; }
         if (strcmp(node->children[i]->contents, "(") == 0) { continue; }
         if (strcmp(node->children[i]->contents, "'(") == 0) { continue; }
         if (strcmp(node->children[i]->contents, ")") == 0) { continue; }
@@ -1100,7 +1154,9 @@ int main(int argc, char** argv) {
     }
 
     mpc_parser_t* Number = mpc_new("number");
+    mpc_parser_t* String = mpc_new("string");
     mpc_parser_t* Symbol = mpc_new("symbol");
+    mpc_parser_t* Comment = mpc_new("comment");
     mpc_parser_t* Sexpr = mpc_new("sexpr");
     mpc_parser_t* Qexpr = mpc_new("qexpr");
     mpc_parser_t* Expr = mpc_new("expr");
@@ -1109,13 +1165,16 @@ int main(int argc, char** argv) {
     mpca_lang(MPCA_LANG_DEFAULT,
         "                                                                     \
             number   : /-?[0-9]+/ ;                                           \
+            string   : /\"(\\\\.|[^\"])*\"/ ;                                 \
             symbol   : /[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&]+/ ;                    \
+            comment  : /;[^\\r\\n]*/ ;                                        \
             sexpr    : '(' <expr>* ')' ;                                      \
             qexpr    : '{' <expr>* '}' | \"'(\" <expr>* ')' ;                 \
-            expr     : <number> | <symbol> | <sexpr> | <qexpr> ;              \
+            expr     : <number> | <string> | <symbol> | <sexpr> | <qexpr>     \
+                     | <comment> ;                                            \
             idelisp  : /^/ <expr>* /$/ ;                                      \
         "
-        , Number, Symbol, Sexpr, Qexpr, Expr, IdeLISP);
+        , Number, String, Symbol, Comment, Sexpr, Qexpr, Expr, IdeLISP);
 
     ideenv* env = ideenv_new();
     ideenv_add_builtins(env);
@@ -1180,6 +1239,6 @@ int main(int argc, char** argv) {
 
     ideenv_del(env);
 
-    mpc_cleanup(5, Number, Symbol, Sexpr, Qexpr, Expr, IdeLISP);
+    mpc_cleanup(8, Number, String, Symbol, Comment, Sexpr, Qexpr, Expr, IdeLISP);
     return 0;
 }

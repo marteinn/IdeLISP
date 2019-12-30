@@ -46,6 +46,7 @@ IdeLISP (type exit() to quit)
     '(print 2)
 )
 (not 0)
+; I am a comment
 ```
 
 
