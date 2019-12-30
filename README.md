@@ -1,9 +1,29 @@
 # IdeLISP
 This is a LISP i'm putting together while reading [Build Your Own Lisp](http://www.buildyourownlisp.com/). Inspired by Lispy, Common Lisp and Hy.
 
-## Getting started
+
+## Installing
 - `make build`
-- `./bin/idelisp`
+
+
+## Running
+
+### Using the REPL
+
+```
+./bin/idelisp
+IdeLISP (type exit() to quit)
+>> + 1 1
+2
+```
+
+### Executing a file
+
+```
+./bin/idelisp -f example.ilisp
+2
+```
+
 
 ## Example syntax
 
@@ -18,9 +38,11 @@ This is a LISP i'm putting together while reading [Build Your Own Lisp](http://w
 (combine 2 1)
 ```
 
+
 ## Debugging
 - Use lldb
 - [Valgrind](https://valgrind.org/)
+
 
 ## Documentation
 - [C reference](https://en.cppreference.com/w/c)
@@ -29,9 +51,11 @@ This is a LISP i'm putting together while reading [Build Your Own Lisp](http://w
 - [Cons](https://en.wikipedia.org/wiki/Cons)
 - [Common Lisp](https://en.wikipedia.org/wiki/Common_Lisp)
 
+
 ## TODO
 x Add builtin for defining function, ex `defun`
 - Add builtin for `print`
+
 
 ## The name?
 Its a pun on the french name for dogmatix in Asterix/Obelix, which is Idéfix.

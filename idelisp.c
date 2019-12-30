@@ -15,6 +15,7 @@ enum {
     IDEOBJ_FUN
 };
 
+
 struct ideobj;
 struct ideenv;
 typedef struct ideobj ideobj;
@@ -879,8 +880,19 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "max", builtin_max);
 }
 
+enum { RUNMODE_REPL, RUNMODE_FILE };
+
 int main(int argc, char** argv) {
-    puts("IdeLISP (type exit() to quit)");
+    int run_mode = RUNMODE_REPL;
+    char* source_file = NULL;
+
+    for (int i=0; i<argc; i++) {
+        if (strcmp(argv[i], "-f") == 0 && i<argc-1) {
+            source_file = argv[i+1];
+            run_mode = RUNMODE_FILE;
+            i++;
+        }
+    }
 
     mpc_parser_t* Number = mpc_new("number");
     mpc_parser_t* Symbol = mpc_new("symbol");
@@ -903,6 +915,42 @@ int main(int argc, char** argv) {
     ideenv* env = ideenv_new();
     ideenv_add_builtins(env);
 
+    if (run_mode == RUNMODE_FILE) {
+        FILE *file = fopen(source_file, "rb");
+        if (file == NULL) {
+            perror("Error");
+            return 1;
+        }
+
+        fseek(file, 0, SEEK_END);
+        long file_size = ftell(file);
+        fseek(file, 0, SEEK_SET);
+
+        char *source = malloc(file_size + 1);
+        fread(source, 1, file_size, file);
+        fclose(file);
+        source[file_size] = 0;
+
+        mpc_result_t result;
+        if (mpc_parse("input", source, IdeLISP, &result)) {
+            mpc_ast_t* root_node = result.output;
+
+            ideobj* v = ideobj_eval(
+                env,
+                ideobj_read(root_node)
+            );
+            ideobj_println(v);
+            ideobj_del(v);
+        } else {
+            mpc_err_print(result.error);
+        }
+        mpc_ast_delete(result.output);
+
+        free(source);
+        return 0;
+    }
+
+    puts("IdeLISP (type exit() to quit)");
     while(1) {
         char* source = readline(">> ");
         add_history(source);
