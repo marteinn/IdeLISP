@@ -36,6 +36,7 @@ IdeLISP (type exit() to quit)
 (plus-two 2)
 (let '(combine) (fn '(x y) '(+ x y)))
 (combine 2 1)
+(== 1 1)
 ```
 
 
@@ -53,8 +54,9 @@ IdeLISP (type exit() to quit)
 
 
 ## TODO
-x Add builtin for defining function, ex `defun`
-- Add builtin for `print`
+- [x] Add builtin for defining function, ex `defun`
+- [x] Add builtin for `print`
+- [ ] Add string type
 
 
 ## The name?

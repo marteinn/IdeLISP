@@ -99,6 +99,12 @@ Creates a lambda function
 | `^        | Exponent                       |                                 |
 | `min`     | Min value                      |                                 |
 | `max`     | Max value                      |                                 |
+| `==`      | Equality                       |                                 |
+| `!=`      | Inequality                     |                                 |
+| `<`       | Less than                      |                                 |
+| `>`       | Greater than                   |                                 |
+| `<=`      | Less or eqal than              |                                 |
+| `>=`      | Greater or eqal than           |                                 |
 
 ## Builtins
 

@@ -203,6 +203,41 @@ ideobj* ideobj_copy(ideobj* obj) {
     return copy;
 }
 
+int ideobj_eq(ideobj* left, ideobj* right) {
+    if (left->type != right->type) {
+        return 0;
+    }
+
+    switch (left->type) {
+        case IDEOBJ_NUM:
+            return left->num == right->num;
+        case IDEOBJ_ERR:
+            return strcmp(left->err, right->err) == 0;
+        case IDEOBJ_SYMBOL:
+            return strcmp(left->symbol, right->symbol) == 0;
+        case IDEOBJ_BUILTIN:
+            return left->builtin == right->builtin;
+        case IDEOBJ_FUN:
+            return ideobj_eq(left->params, right->params)
+                && ideobj_eq(left->body, right->body);
+        case IDEOBJ_QEXPR:
+        case IDEOBJ_SEXPR:
+            if (left->count != right->count) {
+                return 0;
+            }
+
+            for (int i=0; i<left->count; i++) {
+                if (ideobj_eq(left->cell[0], right->cell[0]) == 0) {
+                    return 0;
+                }
+            }
+
+            return 1;
+    }
+
+    return 0;
+}
+
 void ideobj_print(ideobj* obj);
 
 void ideobj_expr_print(ideobj* obj, char* open, char* close) {
@@ -699,6 +734,76 @@ ideobj* builtin_max(ideenv* env, ideobj* obj) {
     return builtin_op(env, obj, "max");
 }
 
+ideobj* builtin_ord(ideenv *env, ideobj* obj, char* operator) {
+    IASSERT_TYPE(operator, obj, 0, IDEOBJ_NUM);
+    IASSERT_TYPE(operator, obj, 1, IDEOBJ_NUM);
+
+    ideobj* left = ideobj_pop(obj, 0);
+    ideobj* right = ideobj_pop(obj, 0);
+
+    int status;
+    if (strcmp(operator, ">") == 0) {
+        status = left->num > right->num;
+    }
+
+    if (strcmp(operator, ">=") == 0) {
+        status = left->num >= right->num;
+    }
+
+    if (strcmp(operator, "<") == 0) {
+        status = left->num < right->num;
+    }
+
+    if (strcmp(operator, "<=") == 0) {
+        status = left->num <= right->num;
+    }
+
+    ideobj_del(obj);
+    return ideobj_num(status);
+}
+
+ideobj* builtin_gt(ideenv* env, ideobj* obj) {
+    return builtin_ord(env, obj, ">");
+}
+
+ideobj* builtin_gte(ideenv* env, ideobj* obj) {
+    return builtin_ord(env, obj, ">=");
+}
+
+ideobj* builtin_lt(ideenv* env, ideobj* obj) {
+    return builtin_ord(env, obj, "<");
+}
+
+ideobj* builtin_lte(ideenv* env, ideobj* obj) {
+    return builtin_ord(env, obj, "<=");
+}
+
+ideobj* builtin_cmp(ideenv* env, ideobj* obj, char* operator) {
+    IASSERT_NUM(operator, obj, 2);
+
+    ideobj* left = ideobj_pop(obj, 0);
+    ideobj* right = ideobj_pop(obj, 0);
+
+    int status;
+    if (strcmp(operator, "==") == 0) {
+        status = ideobj_eq(left, right);
+    }
+
+    if (strcmp(operator, "!=") == 0) {
+        status = ideobj_eq(left, right) == 0;
+    }
+
+    return ideobj_num(status);
+}
+
+ideobj* builtin_eq(ideenv* env, ideobj* obj) {
+    return builtin_cmp(env, obj, "==");
+}
+
+ideobj* builtin_neq(ideenv* env, ideobj* obj) {
+    return builtin_cmp(env, obj, "!=");
+}
+
 ideobj* ideobj_call_builtin(ideenv* env, ideobj* fun, ideobj* args) {
     return fun->builtin(env, args);
 }
@@ -878,6 +983,13 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "^", builtin_pow);
     ideenv_add_builtin(env, "min", builtin_min);
     ideenv_add_builtin(env, "max", builtin_max);
+
+    ideenv_add_builtin(env, ">", builtin_gt);
+    ideenv_add_builtin(env, ">=", builtin_gte);
+    ideenv_add_builtin(env, "<", builtin_lt);
+    ideenv_add_builtin(env, "<=", builtin_lte);
+    ideenv_add_builtin(env, "==", builtin_eq);
+    ideenv_add_builtin(env, "!=", builtin_neq);
 }
 
 enum { RUNMODE_REPL, RUNMODE_FILE };
