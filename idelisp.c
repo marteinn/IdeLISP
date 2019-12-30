@@ -946,7 +946,7 @@ ideobj* ideobj_read(mpc_ast_t* node);
 
 ideobj* builtin_load(ideenv* env, ideobj *obj) {
     IASSERT_NUM("load", obj, 1);
-    IASSERT_TYPE("load", obj, 1, IDEOBJ_STR);
+    IASSERT_TYPE("load", obj, 0, IDEOBJ_STR);
 
     mpc_result_t result;
     if (mpc_parse_contents(obj->cell[0]->str, IdeLISP, &result)) {
@@ -1224,36 +1224,15 @@ int main(int argc, char** argv) {
     ideenv_add_builtins(env);
 
     if (run_mode == RUNMODE_FILE) {
-        mpc_result_t result;
-        int status;
-        if (mpc_parse_contents(source_file, IdeLISP, &result)) {
-            ideobj* expressions = ideobj_read(result.output);
-            mpc_ast_delete(result.output);
+        ideobj* args = ideobj_add(ideobj_sexpr(), ideobj_str(source_file));
+        ideobj* expression = builtin_load(env, args);
 
-            while (expressions->count) {
-                ideobj* expression = ideobj_eval(env, ideobj_pop(expressions, 0));
-                if (expression->type == IDEOBJ_ERR) {
-                    ideobj_println(expression);
-                    ideobj_del(expression);
-                    status = 1;
-                    break;
-                }
-
-                if (expressions->count == 0) {
-                    ideobj_println(expression);
-                }
-                ideobj_del(expression);
-            }
-
-            ideobj_del(expressions);
-            status = 0;
-        } else {
-            mpc_err_print(result.error);
-            status = 1;
+        if (expression->type == IDEOBJ_ERR) {
+            ideobj_println(expression);
+            return 1;
         }
-
-        mpc_cleanup(8, Number, String, Symbol, Comment, Sexpr, Qexpr, Expr, IdeLISP);
-        return status;
+        ideobj_del(expression);
+        return 0;
     }
 
     puts("IdeLISP (type exit() to quit)");
