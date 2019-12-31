@@ -2,3 +2,4 @@ mpc.h
 mpc.c
 bin/*
 !bin/.gitkeep
+dev.ilisp

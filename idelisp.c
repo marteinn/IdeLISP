@@ -97,7 +97,7 @@ ideobj* ideobj_symbol(char* symbol) {
     ideobj* obj = malloc(sizeof(ideobj));
 
     obj->type = IDEOBJ_SYMBOL;
-    obj->symbol= malloc(strlen(symbol) + 1);
+    obj->symbol = malloc(strlen(symbol) + 1);
     strcpy(obj->symbol, symbol);
     return obj;
 }
@@ -613,6 +613,43 @@ ideobj* ideobj_join(ideobj* left, ideobj* right) {
 
     ideobj_del(right);
     return left;
+}
+
+ideobj* builtin_concat(ideenv* env, ideobj* obj) {
+    for (int i=0; i<obj->count; i++) {
+        IASSERT(
+            obj,
+            obj->cell[i]->type == IDEOBJ_STR,
+            "Function 'concat' passed incorrect type"
+        );
+    }
+
+    ideobj* left = ideobj_pop(obj, 0);
+
+    char *source = malloc(strlen(left->str) + 1);
+    strcpy(source, left->str);
+
+    ideobj_del(left);
+
+    while(obj->count) {
+        ideobj* right = ideobj_pop(obj, 0);
+
+        char *combined = malloc(strlen(source) + strlen(right->str) + 1);
+        strcpy(combined, source);
+        strcat(combined, right->str);
+
+        source = malloc(strlen(combined) + 1);
+        strcpy(source, combined);
+
+        free(combined);
+        ideobj_del(right);
+    }
+
+    ideobj* concat = ideobj_str(source);
+
+    free(source);
+    ideobj_del(obj);
+    return concat;
 }
 
 ideobj* builtin_join(ideenv* env, ideobj* obj) {
@@ -1161,6 +1198,7 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "fn", builtin_fn);
     ideenv_add_builtin(env, "defn", builtin_defn);
     ideenv_add_builtin(env, "load", builtin_load);
+    ideenv_add_builtin(env, "concat", builtin_concat);
 
     ideenv_add_builtin(env, "+", builtin_add);
     ideenv_add_builtin(env, "-", builtin_sub);

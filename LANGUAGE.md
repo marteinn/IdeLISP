@@ -16,6 +16,7 @@
 
 - Number
 - Decimal
+- String
 
 ## Globals
 
@@ -86,6 +87,15 @@ Creates a lambda function
 (defn '(show-all) '(&rest rest) '(print rest))
 (show-all 1 2 3)
 >> '(1 2 3)
+```
+
+## Strings
+
+### `concat`
+
+```
+(concat "hello " "John" " " "McCarthy")
+>> "hello John McCarthy"
 ```
 
 ## Macros
