@@ -380,8 +380,7 @@ void ideenv_print(ideenv* env) {
         if (i > 0) {
             puts(", ");
         }
-        puts(env->symbols[i]);
-        puts(": ");
+        printf("%s: ", env->symbols[i]);
         ideobj_print(env->values[i]);
     }
     putchar(')');
