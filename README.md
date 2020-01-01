@@ -1,5 +1,5 @@
 # IdeLISP
-This is a LISP i'm putting together while reading [Build Your Own Lisp](http://www.buildyourownlisp.com/). Inspired by Lispy, Common Lisp and Hy.
+This is a LISP i'm putting together while reading [Build Your Own Lisp](http://www.buildyourownlisp.com/). Inspired by Lispy, Clojure and Common Lisp.
 
 
 ## Installing
@@ -64,16 +64,6 @@ IdeLISP (type exit() to quit)
 - [MPC](https://github.com/orangeduck/mpc)
 - [Cons](https://en.wikipedia.org/wiki/Cons)
 - [Common Lisp](https://en.wikipedia.org/wiki/Common_Lisp)
-
-
-## TODO
-- [x] Add builtin for defining function, ex `defun`
-- [x] Add builtin for `print`
-- [x] Add string type
-- [x] Add `map`, `reduce` and `filter`
-- [ ] Add unittest library
-- [ ] Add `head` / `tail` support to string
-- [ ] Add decimal type
 
 
 ## The name?
