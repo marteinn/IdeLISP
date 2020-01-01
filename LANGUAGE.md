@@ -16,6 +16,8 @@
 
 - Number
 - Decimal
+- Symbol
+- Function
 - String
 
 ## Globals
@@ -34,14 +36,23 @@ z
 >> 3
 ```
 
-### `let`
+### `defl`
 
 Set local variables
 
 ```
-(let '(x) 1)
+(defl '(x) 1)
 x
 >> 1
+```
+
+### `let`
+
+Bind variables and evaluate expressions in a local context
+
+```
+(let '(firstname lastname) '("tom" "waits")
+    '(concat firstname " " lastname))
 ```
 
 ### `exit`
@@ -76,7 +87,7 @@ Creates function and adds it to the global scope
 Creates a lambda function
 
 ```
-(let '(plus-two) (fn '(x) '(+ 2 x)))
+(defl '(plus-two) (fn '(x) '(+ 2 x)))
 (plus-two 2)
 >> 4
 ```

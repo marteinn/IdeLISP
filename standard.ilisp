@@ -25,11 +25,6 @@
     '(nil)
     '(last items)))
 
-; Define local scope
-(defn '(local) '(body)
- '((fn '(_)
-     body) ()))
-
 ; Flip arguments
 (defn '(flip) '(f x y)
   '(f y x))
@@ -117,6 +112,18 @@
   '(if (== items '())
     '(acc)
     '(foldl f (f acc (fst items)) (tail items))))
+
+(defn '(zip) '(x y)
+  '(if (or (not x) (not y))
+    '('())
+    '(join
+      (list
+        (join
+          (head x)
+          (head y)))
+        (zip
+          (tail x)
+          (tail y)))))
 
 ;; Conditional
 

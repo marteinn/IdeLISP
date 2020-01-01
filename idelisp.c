@@ -723,7 +723,7 @@ ideobj* builtin_var(ideenv* env, ideobj* obj, char* func) {
             ideenv_global_put(env, key, value);
         }
 
-        if (strcmp(func, "let") == 0) {
+        if (strcmp(func, "defl") == 0) {
             ideenv_put(env, key, value);
         }
     }
@@ -736,8 +736,45 @@ ideobj* builtin_def(ideenv* env, ideobj* obj) {
     return builtin_var(env, obj, "def");
 }
 
+ideobj* builtin_defl(ideenv* env, ideobj* obj) {
+    return builtin_var(env, obj, "defl");
+}
+
 ideobj* builtin_let(ideenv* env, ideobj* obj) {
-    return builtin_var(env, obj, "let");
+    IASSERT_TYPE("let", obj, 0, IDEOBJ_QEXPR);
+    IASSERT_TYPE("let", obj, 1, IDEOBJ_QEXPR);
+    IASSERT_TYPE("let", obj, 2, IDEOBJ_QEXPR);
+
+    IASSERT(
+        obj,
+        obj->cell[0]->count == obj->cell[1]->count,
+        "let must recieve same number of keywords as values"
+    );
+
+    ideenv* local_env = ideenv_new();
+    local_env->parent = env;
+
+    for (int i=0; i<obj->cell[0]->count; i++) {
+        IASSERT(
+            obj,
+            obj->cell[0]->cell[i]->type == IDEOBJ_SYMBOL,
+            "Cannot define non-symbol, got %s, expected %s",
+            idetype_name(obj->cell[0]->cell[i]->type),
+            idetype_name(IDEOBJ_SYMBOL)
+        );
+    }
+
+    for (int i=0; i<obj->cell[0]->count; i++) {
+        ideenv_put(local_env, obj->cell[0]->cell[i], obj->cell[1]->cell[i]);
+    }
+
+    return builtin_eval(
+        local_env,
+        ideobj_add(
+            ideobj_sexpr(),
+            ideobj_copy(obj->cell[2])
+        )
+    );
 }
 
 ideobj* builtin_fn(ideenv* env, ideobj* obj) {
@@ -1182,21 +1219,34 @@ void ideenv_add_builtin(ideenv* env, char* name, ibuiltin fn) {
 }
 
 void ideenv_add_builtins(ideenv* env) {
+    // List
     ideenv_add_builtin(env, "head", builtin_head);
     ideenv_add_builtin(env, "tail", builtin_tail);
     ideenv_add_builtin(env, "list", builtin_list);
-    ideenv_add_builtin(env, "eval", builtin_eval);
     ideenv_add_builtin(env, "join", builtin_join);
+
+    // Expression
+    ideenv_add_builtin(env, "eval", builtin_eval);
+
+    // Env
     ideenv_add_builtin(env, "def", builtin_def);
+    ideenv_add_builtin(env, "defl", builtin_defl);
     ideenv_add_builtin(env, "let", builtin_let);
+
+    // System
     ideenv_add_builtin(env, "exit", builtin_exit);
     ideenv_add_builtin(env, "print", builtin_print);
+    ideenv_add_builtin(env, "load", builtin_load);
+
+    // Functions
     ideenv_add_builtin(env, "fn", builtin_fn);
     ideenv_add_builtin(env, "defn", builtin_defn);
-    ideenv_add_builtin(env, "load", builtin_load);
+
+    // String
     ideenv_add_builtin(env, "concat", builtin_concat);
     ideenv_add_builtin(env, "error", builtin_error);
 
+    // Operators
     ideenv_add_builtin(env, "+", builtin_add);
     ideenv_add_builtin(env, "-", builtin_sub);
     ideenv_add_builtin(env, "*", builtin_mul);
@@ -1206,6 +1256,7 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "min", builtin_min);
     ideenv_add_builtin(env, "max", builtin_max);
 
+    // Comparisions
     ideenv_add_builtin(env, ">", builtin_gt);
     ideenv_add_builtin(env, ">=", builtin_gte);
     ideenv_add_builtin(env, "<", builtin_lt);
@@ -1215,6 +1266,8 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "and", builtin_and);
     ideenv_add_builtin(env, "or", builtin_or);
     ideenv_add_builtin(env, "not", builtin_not);
+
+    // Conditionals
     ideenv_add_builtin(env, "if", builtin_if);
 }
 

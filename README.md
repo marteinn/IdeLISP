@@ -34,7 +34,7 @@ IdeLISP (type exit() to quit)
 (+ x 1)
 (defn '(plus-two) '(x) '(+ 2 x))
 (plus-two 2)
-(let '(combine) (fn '(x y) '(+ x y)))
+(defl '(combine) (fn '(x y) '(+ x y)))
 (combine 2 1)
 (== 1 1)
 (if (== 1 1)
@@ -48,6 +48,8 @@ IdeLISP (type exit() to quit)
 (not 0)
 ; I am a comment
 (load "curry.ilisp")
+(let '(a b) '(1 2)'
+    '(print a))
 ```
 
 
@@ -68,7 +70,10 @@ IdeLISP (type exit() to quit)
 - [x] Add builtin for defining function, ex `defun`
 - [x] Add builtin for `print`
 - [x] Add string type
-- [ ] Add `map`, `reduce` and `filter`
+- [x] Add `map`, `reduce` and `filter`
+- [ ] Add unittest library
+- [ ] Add `head` / `tail` support to string
+- [ ] Add decimal type
 
 
 ## The name?
