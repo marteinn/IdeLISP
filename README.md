@@ -67,7 +67,8 @@ IdeLISP (type exit() to quit)
 ## TODO
 - [x] Add builtin for defining function, ex `defun`
 - [x] Add builtin for `print`
-- [ ] Add string type
+- [x] Add string type
+- [ ] Add `map`, `reduce` and `filter`
 
 
 ## The name?

@@ -1,0 +1,140 @@
+; Atoms
+(def '(nil) 0)
+(def '(true) 1)
+(def '(false) 0)
+
+(defn '(unpack) '(f items)
+  '(eval (join (list f) items)))
+
+(defn '(pack) '(f &rest items)
+  '(f items))
+
+(def '(curry) unpack)
+(def '(uncurry) pack)
+
+; Call fns in sequence
+(defn '(do) '(&rest items)
+  '(if (== items nil)
+    '(nil)
+    '(last items)))
+
+; Define local scope
+(defn '(local) '(body)
+ '((fn '(_)
+     body) ()))
+
+(defn '(flip) '(f x y)
+  '(f y x))
+
+(defn '(comp) '(f g fs)
+  '(f (g fs)))
+
+; Retrive unwrapped first, second and third element in list
+(defn '(fst) '(items)
+  '(eval (head items)))
+
+(defn '(snd) '(items)
+  '(eval (head (tail items))))
+
+(defn '(trd) '(items)
+  '(eval (head (tail (tail items)))))
+
+; Quoted list length
+(defn '(len) '(items)
+  '(if (not items)
+    '(0)
+    '(+ 1 (len (tail items)))))
+
+; Retrive element at list index
+(defn '(nth) '(n items)
+  '(if (== n 0)
+    '(fst items)
+    '(nth (- n 1) (tail items))))
+
+; Retrive last element of list
+(defn '(last) '(items)
+  '(nth (- (len items) 1) items))
+
+; Retrive elements from list
+(defn '(take) '(num items)
+  '(if (== num 0)
+    '('())
+    '(join
+      (head items)
+      (take
+        (- num 1)
+        (tail items)))))
+
+; Drop elements from list
+(defn '(drop) '(num items)
+  '(if (== num 0)
+    '(items)
+    '(drop (- num 1) (tail items))))
+
+; Split list after num
+(defn '(split) '(num items)
+  '(list (take num items) (drop num items)))
+
+; Check if element is in list
+(defn '(elem) '(needle items)
+  '(if (== items '())
+    '(false)
+    '(if (== needle (fst items))
+      '(true)
+      '(elem needle (tail items)))))
+
+; Apply function on every element in list
+(defn '(map) '(f items)
+  '(if (== items '())
+    '('())
+    '(join
+      (list (f (fst items)))
+      (map f (tail items)))))
+
+; Filter list by predicate
+(defn '(filter) '(p items)
+  '(if (== items '())
+    '('())
+    '(join
+       (if (p (fst items))
+         '(head items)
+         '('()))
+       (filter p (tail items)))))
+
+; Fold value left to right
+(defn '(foldl) '(f acc items)
+  '(if (== items '())
+    '(acc)
+    '(foldl f (f acc (fst items)) (tail items))))
+
+(defn '(sum) '(items) '(foldl + 0 items))
+(defn '(product) '(items) '(foldl * 1 items))
+
+(defn '(select) '(&rest cs)
+  '(if (not cs)
+    '(error "No cases found")
+    '(if (fst (fst cs))
+      '(snd (fst cs))
+      '(if (== (- (len cs) 1) 0)
+        '(error "No matching case found")
+        '(unpack select (tail cs)))))) ; TODO: fails when tail is empty q exp
+
+(defn '(case) '(needle &rest cs)
+  '(if (not cs)
+    '(error "No case found")
+    '(if (== needle (fst (fst cs)))
+      '(snd (fst cs))
+      '(if (== (- (len cs) 1) 0)
+        '(error "No matching case found")
+        '(unpack case (join (list needle) (tail cs)))))))
+
+(defn '(fib) '(x)
+  '(select
+    '((== x 0) 0)
+    '((== x 1) 1)
+    '(1 (+ (fib (- x 1)) (fib (- x 2))))))
+
+
+; ----------------------------------------------------------------------------
+; [ ] Add inc
+; [ ] Convert len to a builtin

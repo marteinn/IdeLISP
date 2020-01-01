@@ -267,6 +267,8 @@ int ideobj_eq(ideobj* left, ideobj* right) {
     return 0;
 }
 
+void ideobj_println(ideobj* obj);
+
 int ideobj_truthy(ideobj* obj) {
     switch (obj->type) {
         case IDEOBJ_NUM:
@@ -332,7 +334,7 @@ void ideobj_print(ideobj* obj) {
             ideobj_expr_print(obj, "'(", ")");
             break;
         case IDEOBJ_BUILTIN:
-            printf("<function>");
+            printf("<builtin>");
             break;
         case IDEOBJ_FUN:
             printf("(fn ");
@@ -534,6 +536,10 @@ ideobj* ideobj_take(ideobj* obj, int i) {
     "Got %i, Expected %i.", \
     func, args->count, num)
 
+#define IASSERT_NOT_EMPTY(func, args, index) \
+  IASSERT(args, args->cell[index]->count != 0, \
+    "Function '%s' passed '() for argument %i.", func, index);
+
 ideobj* ideobj_eval(ideenv* env, ideobj* obj);
 
 ideobj* builtin_head(ideenv* env, ideobj* obj) {
@@ -564,19 +570,9 @@ ideobj* builtin_head(ideenv* env, ideobj* obj) {
 }
 
 ideobj* builtin_tail(ideenv* env, ideobj* obj) {
-    IASSERT(
-        obj,
-        obj->count == 1,
-        "Function 'tail' received wrong number of arguments, requires 1"
-    );
-    IASSERT(
-        obj,
-        obj->cell[0]->type == IDEOBJ_QEXPR,
-        "Function 'tail' received wrong type"
-    );
-    IASSERT(
-        obj, obj->cell[0]->count != 0, "Function 'tail' received empty list"
-    );
+    IASSERT_NUM("tail", obj, 1);
+    IASSERT_TYPE("tail", obj, 0, IDEOBJ_QEXPR);
+    IASSERT_NOT_EMPTY("tail", obj, 0);
 
     ideobj* first = ideobj_take(obj, 0);
     ideobj_del(ideobj_pop(first, 0));
@@ -607,11 +603,12 @@ ideobj* builtin_eval(ideenv* env, ideobj* obj) {
 }
 
 ideobj* ideobj_join(ideobj* left, ideobj* right) {
-    while (right->count) {
-        left = ideobj_add(left, ideobj_pop(right, 0));
+    for (int i = 0; i < right->count; i++) {
+        left = ideobj_add(left, right->cell[i]);
     }
 
-    ideobj_del(right);
+    free(right->cell);
+    free(right);
     return left;
 }
 
@@ -652,13 +649,18 @@ ideobj* builtin_concat(ideenv* env, ideobj* obj) {
     return concat;
 }
 
+ideobj* builtin_error(ideenv* env, ideobj* obj) {
+    IASSERT_NUM("error", obj, 1);
+    IASSERT_TYPE("error", obj, 0, IDEOBJ_STR);
+
+    ideobj* err = ideobj_err(obj->cell[0]->str);
+    ideobj_del(obj);
+    return err;
+}
+
 ideobj* builtin_join(ideenv* env, ideobj* obj) {
     for (int i=0; i<obj->count; i++) {
-        IASSERT(
-            obj,
-            obj->cell[i]->type == IDEOBJ_QEXPR,
-            "Function 'join' passed incorrect type"
-        );
+        IASSERT_TYPE("join", obj, i, IDEOBJ_QEXPR);
     }
 
     ideobj* first = ideobj_pop(obj, 0);
@@ -666,6 +668,7 @@ ideobj* builtin_join(ideenv* env, ideobj* obj) {
         first = ideobj_join(first, ideobj_pop(obj, 0));
     }
 
+    ideobj_del(obj);
     return first;
 }
 
@@ -914,6 +917,7 @@ ideobj* builtin_if(ideenv* env, ideobj* obj) {
     IASSERT_TYPE("if", obj, 1, IDEOBJ_QEXPR);
     IASSERT_TYPE("if", obj, 2, IDEOBJ_QEXPR);
 
+
     ideobj* condition = ideobj_pop(obj, 0);
     ideobj* consequence = ideobj_pop(obj, 0);
     ideobj* alternative = ideobj_pop(obj, 0);
@@ -924,7 +928,7 @@ ideobj* builtin_if(ideenv* env, ideobj* obj) {
     alternative->type = IDEOBJ_SEXPR;
 
     ideobj* result;
-    if (condition->num == 1) {
+    if (ideobj_truthy(condition)) {
         result = ideobj_eval(env, consequence);
     } else {
         result = ideobj_eval(env, alternative);
@@ -966,14 +970,7 @@ ideobj* builtin_or(ideenv* env, ideobj* obj) {
 ideobj* builtin_not(ideenv* env, ideobj* obj) {
     IASSERT_NUM("not", obj, 1);
 
-    int status = 1;
-
-    for (int i=0; i<obj->count; i++) {
-        if (ideobj_truthy(obj->cell[i]) == 1) {
-            status = 0;
-            break;
-        }
-    }
+    int status = !ideobj_truthy(obj->cell[0]);
 
     ideobj_del(obj);
     return ideobj_num(status);
@@ -1089,7 +1086,7 @@ ideobj* ideobj_eval_sexpr(ideenv* env, ideobj* obj) {
     }
 
     if (obj->count == 1) {
-        return ideobj_take(obj, 0);
+        return ideobj_eval(env, ideobj_take(obj, 0));
     }
 
     ideobj* first = ideobj_pop(obj, 0);
@@ -1199,6 +1196,7 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "defn", builtin_defn);
     ideenv_add_builtin(env, "load", builtin_load);
     ideenv_add_builtin(env, "concat", builtin_concat);
+    ideenv_add_builtin(env, "error", builtin_error);
 
     ideenv_add_builtin(env, "+", builtin_add);
     ideenv_add_builtin(env, "-", builtin_sub);
@@ -1251,7 +1249,7 @@ int main(int argc, char** argv) {
             symbol   : /[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&]+/ ;                    \
             comment  : /;[^\\r\\n]*/ ;                                        \
             sexpr    : '(' <expr>* ')' ;                                      \
-            qexpr    : '{' <expr>* '}' | \"'(\" <expr>* ')' ;                 \
+            qexpr    : \"'(\" <expr>* ')' ;                                   \
             expr     : <number> | <string> | <symbol> | <sexpr> | <qexpr>     \
                      | <comment> ;                                            \
             idelisp  : /^/ <expr>* /$/ ;                                      \

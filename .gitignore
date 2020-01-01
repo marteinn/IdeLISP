@@ -3,3 +3,5 @@ mpc.c
 bin/*
 !bin/.gitkeep
 dev.ilisp
+*.lspy
+lispy.c
