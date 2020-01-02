@@ -125,12 +125,12 @@ Transforms string into a list of chars
 >> '("s" "c" "o" "t" "t" " " "w" "a" "l" "k" "e" "r")
 ```
 
-### `list-to-str`
+### `str-join`
 
 Convert a list of values to a string. (From the standard library).
 
 ```
-(list-to-str '("s" "c" "o" "t" "t")'
+(str-join '("s" "c" "o" "t" "t")'
 >> "scott"
 ```
 

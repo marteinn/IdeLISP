@@ -156,7 +156,7 @@
 ;; String
 
 ; Construct string from list
-(defn '(list-to-str) '(values)
+(defn '(str-join) '(values)
   '(foldl concat "" values))
 
 ;; Misc
