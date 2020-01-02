@@ -14,5 +14,5 @@ jobs:
       run: sudo apt-get install libedit-dev
     - name: Copy mpc
       run: cp ./mpc/mpc.c ./mpc.c && cp ./mpc/mpc.h ./mpc.h
-    - name: Compile and test
-      run: make build test
+    - name: Compile
+      run: make build
