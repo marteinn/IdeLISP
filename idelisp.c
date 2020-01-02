@@ -153,6 +153,7 @@ char* idetype_name(int type) {
         case IDEOBJ_ERR: return "Error";
         case IDEOBJ_SYMBOL: return "Symbol";
         case IDEOBJ_NUM: return "Number";
+        case IDEOBJ_DECIMAL: return "Decimal";
         case IDEOBJ_BUILTIN: return "Function";
         case IDEOBJ_QEXPR: return "Quoted Expression";
         case IDEOBJ_SEXPR: return "S-Expression";
@@ -168,6 +169,7 @@ void ideobj_del(ideobj* obj) {
         case IDEOBJ_ERR: free(obj->err); break;
         case IDEOBJ_SYMBOL: free(obj->symbol); break;
         case IDEOBJ_NUM: break;
+        case IDEOBJ_DECIMAL: break;
         case IDEOBJ_BUILTIN: break;
         case IDEOBJ_FUN:
             ideenv_del(obj->env);
@@ -201,6 +203,9 @@ ideobj* ideobj_copy(ideobj* obj) {
         case IDEOBJ_NUM:
             copy->num = obj->num;
             break;
+        case IDEOBJ_DECIMAL:
+            copy->decimal= obj->decimal;
+            break;
         case IDEOBJ_ERR:
             copy->err = malloc(strlen(obj->err) + 1);
             strcpy(copy->err, obj->err);
@@ -231,6 +236,8 @@ ideobj* ideobj_copy(ideobj* obj) {
     return copy;
 }
 
+void ideobj_println(ideobj* obj);
+
 int ideobj_eq(ideobj* left, ideobj* right) {
     if (left->type != right->type) {
         return 0;
@@ -239,6 +246,8 @@ int ideobj_eq(ideobj* left, ideobj* right) {
     switch (left->type) {
         case IDEOBJ_NUM:
             return left->num == right->num;
+        case IDEOBJ_DECIMAL:
+            return left->decimal == right->decimal;
         case IDEOBJ_ERR:
             return strcmp(left->err, right->err) == 0;
         case IDEOBJ_SYMBOL:
@@ -267,8 +276,6 @@ int ideobj_eq(ideobj* left, ideobj* right) {
 
     return 0;
 }
-
-void ideobj_println(ideobj* obj);
 
 int ideobj_truthy(ideobj* obj) {
     switch (obj->type) {
@@ -379,7 +386,7 @@ void ideenv_print(ideenv* env) {
     putchar('(');
     for (int i=0; i<env->count; i++) {
         if (i > 0) {
-            puts(", ");
+            printf(", ");
         }
         printf("%s: ", env->symbols[i]);
         ideobj_print(env->values[i]);
@@ -481,12 +488,47 @@ ideobj* eval_tenary_number_op(ideobj* left, char* operator, ideobj* right) {
     return ideobj_err("Invalid operator '%s'", operator);
 }
 
-ideobj* eval_op(ideobj* left, char* operator, ideobj* right) {
-    if (left->type == IDEOBJ_ERR) { return left; };
-    if (right->type == IDEOBJ_ERR) { return right; };
+int ideobj_is_numeric(ideobj *obj) {
+    return obj->type == IDEOBJ_NUM || obj->type == IDEOBJ_DECIMAL;
+}
 
-    if (left->type == IDEOBJ_NUM && right->type == IDEOBJ_NUM) {
-        return eval_tenary_number_op(left, operator, right);
+ideobj* eval_tenary_decimal_op(ideobj* left, char* operator, ideobj* right) {
+    double left_value = left->decimal;
+    double right_value = right->decimal;
+
+    if (left->type == IDEOBJ_NUM) {
+        left_value = (double) left->num;
+    }
+
+    if (right->type == IDEOBJ_NUM) {
+        right_value = (double) right->num;
+    }
+
+    if (strcmp(operator, "+") == 0) {
+        return ideobj_decimal(left_value + right_value);
+    }
+    if (strcmp(operator, "-") == 0) {
+        return ideobj_decimal(left_value - right_value);
+    }
+    if (strcmp(operator, "*") == 0) {
+        return ideobj_decimal(left_value * right_value);
+    }
+    if (strcmp(operator, "/") == 0) {
+        if (right->num == 0) {
+            return ideobj_err("Division by zero");
+        }
+        return ideobj_decimal(left_value / right_value);
+    }
+    if (strcmp(operator, "^") == 0) {
+        return ideobj_decimal(pow(left_value, right_value));
+    }
+    if (strcmp(operator, "min") == 0) {
+        return ideobj_decimal(
+            left_value < right_value ? left_value : right_value
+        );
+    }
+    if (strcmp(operator, "max") == 0) {
+        return ideobj_decimal(left_value > right_value ? left_value : right_value);
     }
 
     return ideobj_err("Invalid operator '%s'", operator);
@@ -608,6 +650,12 @@ ideobj* builtin_str(ideenv* env, ideobj *obj) {
     char* source = "";
 
     switch (obj->cell[0]->type) {
+        case IDEOBJ_DECIMAL: {
+            int str_len = snprintf(NULL, 0, "%.10g", obj->cell[0]->decimal);
+            source = malloc(str_len+1);
+            snprintf(source, str_len + 1, "%.10g", obj->cell[0]->decimal);
+            break;
+        }
         case IDEOBJ_NUM: {
             int str_len = snprintf(NULL, 0, "%li", obj->cell[0]->num);
             source = malloc(str_len+1);
@@ -707,6 +755,16 @@ ideobj* builtin_error(ideenv* env, ideobj* obj) {
     return err;
 }
 
+ideobj* builtin_type(ideenv* env, ideobj* obj) {
+    IASSERT_NUM("type", obj, 1);
+
+    ideobj *type = ideobj_str(
+        idetype_name(obj->cell[0]->type)
+    );
+    ideobj_del(obj);
+    return type;
+}
+
 ideobj* builtin_join(ideenv* env, ideobj* obj) {
     for (int i=0; i<obj->count; i++) {
         IASSERT_TYPE("join", obj, i, IDEOBJ_QEXPR);
@@ -721,14 +779,7 @@ ideobj* builtin_join(ideenv* env, ideobj* obj) {
     return first;
 }
 
-ideobj* builtin_op(ideenv* env, ideobj* obj, char* operator) {
-    for (int i=0; i<obj->count; i++) {
-        if (obj->cell[i]->type != IDEOBJ_NUM) {
-            ideobj_del(obj);
-            return ideobj_err("Cannot operate on non-number");
-        }
-    }
-
+ideobj* builtin_op_num(ideenv* env, ideobj* obj, char* operator) {
     ideobj* acc_value = ideobj_pop(obj, 0);
 
     if (strcmp(operator, "-") == 0 && obj->count == 0) {
@@ -743,6 +794,45 @@ ideobj* builtin_op(ideenv* env, ideobj* obj, char* operator) {
 
     ideobj_del(obj);
     return acc_value;
+}
+
+ideobj* builtin_op_decimal(ideenv* env, ideobj* obj, char* operator) {
+    ideobj* acc_value = ideobj_pop(obj, 0);
+
+    if (strcmp(operator, "-") == 0 && obj->count == 0) {
+        acc_value->decimal = -acc_value->decimal;
+    }
+
+    while(obj->count > 0) {
+         ideobj* right = ideobj_pop(obj, 0);
+         acc_value = eval_tenary_decimal_op(acc_value, operator, right);
+         ideobj_del(right);
+    }
+
+    ideobj_del(obj);
+    return acc_value;
+}
+
+int ideobj_cells_is_type(ideobj* obj, int type) {
+    for (int i=0; i<obj->count; i++) {
+        if (obj->cell[i]->type != type) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+ideobj* builtin_op(ideenv* env, ideobj* obj, char* operator) {
+    if (ideobj_cells_is_type(obj, IDEOBJ_NUM)) {
+        return builtin_op_num(env, obj, operator);
+    }
+
+    if (ideobj_is_numeric(obj->cell[0])) {
+        return builtin_op_decimal(env, obj, operator);
+    }
+
+    return ideobj_err("Cannot operate on non-number");
 }
 
 ideobj* builtin_var(ideenv* env, ideobj* obj, char* func) {
@@ -1298,6 +1388,7 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "print", builtin_print);
     ideenv_add_builtin(env, "load", builtin_load);
     ideenv_add_builtin(env, "error", builtin_error);
+    ideenv_add_builtin(env, "type", builtin_type);
 
     // Functions
     ideenv_add_builtin(env, "fn", builtin_fn);
@@ -1359,7 +1450,7 @@ int main(int argc, char** argv) {
 
     mpca_lang(MPCA_LANG_DEFAULT,
         "                                                                     \
-            decimal  : /-?[0-9]\\.[0-9]+/ ;                                   \
+            decimal  : /-?[0-9]+\\.[0-9]+/ ;                                  \
             number   : /-?[0-9]+/ ;                                           \
             string   : /\"(\\\\.|[^\"])*\"/ ;                                 \
             symbol   : /[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&]+/ ;                    \
