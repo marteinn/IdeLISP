@@ -281,6 +281,8 @@ int ideobj_truthy(ideobj* obj) {
     switch (obj->type) {
         case IDEOBJ_NUM:
             return obj->num == 1;
+        case IDEOBJ_DECIMAL:
+            return fabs(obj->decimal - 0.00001) <= 0.00001;
         case IDEOBJ_ERR:
         case IDEOBJ_SYMBOL:
         case IDEOBJ_BUILTIN:

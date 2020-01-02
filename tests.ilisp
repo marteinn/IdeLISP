@@ -41,3 +41,11 @@
 (assert-eq (str 1.111) "1.111")
 ;; (assert-eq (str 1.1015510001) "1.1015510001") ;
 
+; not
+(assert-eq (not 1) 0)
+(assert-eq (not 0) 1)
+(assert-eq (not "") 1)
+(assert-eq (not "a") 0)
+(assert-eq (not 0.0) 0)
+(assert-eq (not 0.1) 1)
+(assert-eq (not '()) 1)
