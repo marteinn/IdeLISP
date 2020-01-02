@@ -49,6 +49,7 @@ struct ideenv {
     ideobj** values;
 };
 
+mpc_parser_t* Decimal;
 mpc_parser_t* Number;
 mpc_parser_t* String;
 mpc_parser_t* Symbol;
@@ -322,7 +323,7 @@ void ideobj_print(ideobj* obj) {
             printf("%li", obj->num);
             break;
         case IDEOBJ_DECIMAL:
-            printf("%.2f", obj->decimal);
+            printf("%.10g", obj->decimal);
             break;
         case IDEOBJ_SYMBOL:
             printf("%s", obj->symbol);
@@ -1210,6 +1211,15 @@ ideobj* ideobj_eval(ideenv* env, ideobj* obj) {
     return obj;
 }
 
+ideobj* ideobj_read_decimal(mpc_ast_t* node) {
+    errno = 0;
+    double decimal = strtod(node->contents, NULL);
+    if (errno == ERANGE) {
+        return ideobj_err("Invalid number");
+    }
+    return ideobj_decimal(decimal);
+}
+
 ideobj* ideobj_read_num(mpc_ast_t* node) {
     errno = 0;
     long num = strtol(node->contents, NULL, 10);
@@ -1232,6 +1242,7 @@ ideobj* ideobj_read_string(mpc_ast_t* node) {
 }
 
 ideobj* ideobj_read(mpc_ast_t* node) {
+    if (strstr(node->tag, "decimal")) { return ideobj_read_decimal(node); }
     if (strstr(node->tag, "number")) { return ideobj_read_num(node); }
     if (strstr(node->tag, "string")) { return ideobj_read_string(node); }
     if (strstr(node->tag, "symbol")) {
@@ -1336,6 +1347,7 @@ int main(int argc, char** argv) {
         }
     }
 
+    Decimal = mpc_new("decimal");
     Number = mpc_new("number");
     String = mpc_new("string");
     Symbol = mpc_new("symbol");
@@ -1347,17 +1359,18 @@ int main(int argc, char** argv) {
 
     mpca_lang(MPCA_LANG_DEFAULT,
         "                                                                     \
+            decimal  : /-?[0-9]\\.[0-9]+/ ;                                   \
             number   : /-?[0-9]+/ ;                                           \
             string   : /\"(\\\\.|[^\"])*\"/ ;                                 \
             symbol   : /[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&]+/ ;                    \
             comment  : /;[^\\r\\n]*/ ;                                        \
             sexpr    : '(' <expr>* ')' ;                                      \
             qexpr    : \"'(\" <expr>* ')' ;                                   \
-            expr     : <number> | <string> | <symbol> | <sexpr> | <qexpr>     \
-                     | <comment> ;                                            \
+            expr     : <decimal> | <number> | <string> | <symbol> | <sexpr>   \
+                     | <qexpr> | <comment> ;                                  \
             idelisp  : /^/ <expr>* /$/ ;                                      \
         "
-        , Number, String, Symbol, Comment, Sexpr, Qexpr, Expr, IdeLISP);
+        , Decimal, Number, String, Symbol, Comment, Sexpr, Qexpr, Expr, IdeLISP);
 
     ideenv* env = ideenv_new();
     ideenv_add_builtins(env);
@@ -1399,6 +1412,8 @@ int main(int argc, char** argv) {
 
     ideenv_del(env);
 
-    mpc_cleanup(8, Number, String, Symbol, Comment, Sexpr, Qexpr, Expr, IdeLISP);
+    mpc_cleanup(
+        9, Decimal, Number, String, Symbol, Comment, Sexpr, Qexpr, Expr, IdeLISP
+    );
     return 0;
 }
