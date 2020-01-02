@@ -153,6 +153,12 @@
 ; Get products of args
 (defn '(product) '(items) '(foldl * 1 items))
 
+;; String
+
+; Construct string from list
+(defn '(list-to-str) '(values)
+  '(foldl concat "" values))
+
 ;; Misc
 
 ; Fibonacci

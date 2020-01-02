@@ -583,6 +583,25 @@ ideobj* builtin_list(ideenv* env, ideobj* obj) {
     return obj;
 }
 
+ideobj* builtin_str_split(ideenv* env, ideobj *obj) {
+    ideobj *list = ideobj_qexpr();
+    char* source = obj->cell[0]->str;
+
+    list->cell = malloc(sizeof(ideobj) * strlen(source));
+    list->count = strlen(source);
+
+    for (int i=0; i<strlen(source); i++) {
+        char *str_char = malloc(2);
+        strncpy(str_char, &source[i], 1);
+
+        list->cell[i] = ideobj_str(str_char);
+        free(str_char);
+    }
+
+    ideobj_del(obj);
+    return list;
+}
+
 ideobj* builtin_eval(ideenv* env, ideobj* obj) {
     IASSERT(
         obj,
@@ -1237,6 +1256,7 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "exit", builtin_exit);
     ideenv_add_builtin(env, "print", builtin_print);
     ideenv_add_builtin(env, "load", builtin_load);
+    ideenv_add_builtin(env, "error", builtin_error);
 
     // Functions
     ideenv_add_builtin(env, "fn", builtin_fn);
@@ -1244,7 +1264,7 @@ void ideenv_add_builtins(ideenv* env) {
 
     // String
     ideenv_add_builtin(env, "concat", builtin_concat);
-    ideenv_add_builtin(env, "error", builtin_error);
+    ideenv_add_builtin(env, "str-split", builtin_str_split);
 
     // Operators
     ideenv_add_builtin(env, "+", builtin_add);

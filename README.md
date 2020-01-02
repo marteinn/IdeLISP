@@ -1,5 +1,5 @@
 # IdeLISP
-This is a LISP i'm putting together while reading [Build Your Own Lisp](http://www.buildyourownlisp.com/). Inspired by Lispy, Clojure and Common Lisp.
+This is a LISP I put together while reading [Build Your Own Lisp](http://www.buildyourownlisp.com/). Inspired by Lispy, Clojure and Common Lisp.
 
 
 ## Installing
@@ -28,6 +28,7 @@ IdeLISP (type exit() to quit)
 ## Example syntax
 
 ```
+(load "standard.ilisp")
 (+ 1 2)
 (* (+ 2 3) (* 2 3))
 (def '(x) 1)
@@ -47,7 +48,6 @@ IdeLISP (type exit() to quit)
 )
 (not 0)
 ; I am a comment
-(load "curry.ilisp")
 (let '(a b) '(1 2)'
     '(print a))
 ```

@@ -70,6 +70,13 @@ exit ()
 >> 4
 ```
 
+## Lists
+
+### `head`
+### `tail`
+### `join`
+### `list`
+
 ## Functions
 
 ### `defn`
@@ -107,6 +114,24 @@ Creates a lambda function
 ```
 (concat "hello " "John" " " "McCarthy")
 >> "hello John McCarthy"
+```
+
+### `str-split`
+
+Transforms string into a list of chars
+
+```
+(str-split "scott walker")
+>> '("s" "c" "o" "t" "t" " " "w" "a" "l" "k" "e" "r")
+```
+
+### `list-to-str`
+
+Convert a list of values to a string. (From the standard library).
+
+```
+(list-to-str '("s" "c" "o" "t" "t")'
+>> "scott"
 ```
 
 ## Macros
@@ -147,7 +172,6 @@ Creates a lambda function
 | `join`                                                                       |
 | `list`                                                                       |
 | `join`                                                                       |
-| `setv`                                                                       |
 
 ## External modules
 
