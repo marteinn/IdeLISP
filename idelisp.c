@@ -154,7 +154,8 @@ char* idetype_name(int type) {
         case IDEOBJ_SYMBOL: return "Symbol";
         case IDEOBJ_NUM: return "Number";
         case IDEOBJ_DECIMAL: return "Decimal";
-        case IDEOBJ_BUILTIN: return "Function";
+        case IDEOBJ_BUILTIN: return "Builtin";
+        case IDEOBJ_FUN: return "Function";
         case IDEOBJ_QEXPR: return "Quoted Expression";
         case IDEOBJ_SEXPR: return "S-Expression";
         case IDEOBJ_STR: return "String";
@@ -1195,8 +1196,23 @@ ideobj* ideobj_call_builtin(ideenv* env, ideobj* fun, ideobj* args) {
 ideobj* ideobj_call_fun(ideenv* env, ideobj* fun, ideobj* args) {
     int fun_num_params = fun->params->count;
     int num_args = args->count;
+    int has_zero_arity = 0;
 
-    while (args->count) {
+    // Allow calling zero arity functions with empty sexpr arg
+    if (fun->params->count == 0) {
+        if (
+            args->count == 1 &&
+            (
+                args->cell[0]->type == IDEOBJ_SEXPR ||
+                args->cell[0]->type == IDEOBJ_QEXPR
+            ) &&
+            args->cell[0]->count == 0
+        ) {
+            has_zero_arity = 1;
+        }
+    }
+
+    while (args->count && !has_zero_arity) {
         if (fun->params->count == 0) {
             ideobj_del(args);
 

@@ -49,3 +49,12 @@
 (assert-eq (not 0.0) 0)
 (assert-eq (not 0.1) 1)
 (assert-eq (not '()) 1)
+
+(defn '(zero-arity-fn) '()
+  '(1))
+
+; Calling fn with zero arity
+(assert-eq (zero-arity-fn ()) 1)
+(assert-eq (zero-arity-fn '()) 1)
+(assert-eq (type (zero-arity-fn ())) "Number")
+(assert-eq (type (zero-arity-fn)) "Function")

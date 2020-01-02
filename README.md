@@ -52,6 +52,7 @@ IdeLISP (type exit() to quit)
 ; I am a comment
 (let '(a b) '(1 2)'
     '(print a))
+(zero-arity-fn ())
 ```
 
 ## Language syntax
