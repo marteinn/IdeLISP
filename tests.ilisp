@@ -1,5 +1,6 @@
 (load "standard.ilisp")
 
+
 (defn '(assert-eq) '(value expected)
   '(if (== value expected)
     '(true)
@@ -10,6 +11,9 @@
          "' did not eq '"
          (str expected)
          "'"))))
+;
+; Builtins
+;
 
 ; int
 (assert-eq (type 1) "Number")
@@ -63,3 +67,52 @@
 (assert-eq (len "hello") 5)
 (assert-eq (len '(1 2 3)) 3)
 (assert-eq (len (list 1 2 3)) 3)
+
+;
+; Standard library functions
+;
+(assert-eq (concat "hello" " " "martin") "hello martin")
+(assert-eq (unpack + '(1 2 3)) 6)
+(assert-eq (pack head 1 2 3) '(1))
+(assert-eq ((flip concat) "hi" "world") "worldhi")
+(assert-eq (fst '(1 2 3)) 1)
+(assert-eq (snd '(1 2 3)) 2)
+(assert-eq (trd '(1 2 3)) 3)
+
+(let '(x) '(1)
+  '(assert-eq x 1))
+
+(def '(mul-neg) (comp - (unpack *)))
+(assert-eq (mul-neg '(2 8)) -16)
+
+(assert-eq (nth 0 '(10 20 30 40)) 10)
+(assert-eq (nth 2 '(10 20 30 40)) 30)
+(assert-eq (last '(10 20 30 40)) 40)
+(assert-eq (take 2 '(1 2 3 4)) '(1 2))
+(assert-eq (drop 2 '(1 2 3 4)) '(3 4))
+(assert-eq (split 3 '(1 2 3 4 5)) '('(1 2 3) '(4 5)))
+(assert-eq (elem 4 '(1 2 3 4 5 99)) 1)
+(assert-eq (elem 500 '(1 2 3 4 5 99)) 0)
+(assert-eq (map (fn '(x) '(* x 2)) '(1 2 3)) '(2 4 6))
+(assert-eq (filter (fn '(x) '(== x 1)) '(0 1 0 1)) '(1 1))
+(assert-eq (foldl + 0 '(1 2 3 4 5)) 15)
+(assert-eq (sum '(1 2 3)) 6)
+(assert-eq (product '(1 2 3 4)) 24)
+
+(defn '(name-of-num) '(x)
+  '(select
+    '((== x 0) "zero")
+    '((== x 1) "one")
+    '(true "other")))
+
+(assert-eq (name-of-num 1) "one")
+(assert-eq (name-of-num 3) "other")
+
+(defn '(day-name) '(x)
+  '(case x
+     '(0 "Monday")
+     '(1 "Tuesday")
+     '(2 "Wednesday")))
+
+(assert-eq (day-name 1) "Tuesday")
+(assert-eq (fib 12) 144)
