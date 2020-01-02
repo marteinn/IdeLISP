@@ -109,6 +109,19 @@ Creates a lambda function
 
 ## Strings
 
+### `str`
+
+Cast value to a string
+
+```
+(str 1)
+>> "1"
+(str "hi")
+>> "hi"
+(str list)
+>> ""
+```
+
 ### `concat`
 
 ```
