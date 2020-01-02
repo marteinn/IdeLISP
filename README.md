@@ -3,6 +3,7 @@ This is a LISP I put together while reading [Build Your Own Lisp](http://www.bui
 
 
 ## Installing
+- Clone [MPC](https://github.com/orangeduck/mpc) and drop `mpc.c` and `mpc.h` in the project root
 - `make build`
 
 
@@ -23,7 +24,6 @@ IdeLISP (type exit() to quit)
 ./bin/idelisp -f example.ilisp
 2
 ```
-
 
 ## Example syntax
 
@@ -51,6 +51,9 @@ IdeLISP (type exit() to quit)
 (let '(a b) '(1 2)'
     '(print a))
 ```
+
+## Language syntax
+See the [language](https://github.com/marteinn/IdeLISP/blob/master/LANGUAGE.md) specification
 
 
 ## Debugging
