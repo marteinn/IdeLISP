@@ -247,7 +247,7 @@ int ideobj_eq(ideobj* left, ideobj* right) {
         case IDEOBJ_NUM:
             return left->num == right->num;
         case IDEOBJ_DECIMAL:
-            return left->decimal == right->decimal;
+            return fabs(left->decimal - right->decimal) <= 0.00001;
         case IDEOBJ_ERR:
             return strcmp(left->err, right->err) == 0;
         case IDEOBJ_SYMBOL:
