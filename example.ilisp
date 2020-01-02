@@ -8,13 +8,11 @@
   (print "do first")
   (print "do second"))
 
-(local
+(let '(x) '(100)
   '(do
-    (let '(x) 100)
     (print x)))
 
-(local
-  '(let '(x) 1))
+(let '(x) '(1) '(x))
 
 ((flip concat) "hi" "world")            ; worldhi
 (def '(mul-neg) (comp - (unpack *)))
