@@ -6,6 +6,8 @@ This is a LISP I put together while reading [Build Your Own Lisp](http://www.bui
 - Clone [MPC](https://github.com/orangeduck/mpc) and drop `mpc.c` and `mpc.h` in the project root
 - `make build`
 
+_(Please note this project is currently not cross-platform, and probably never will be. Will much likely work when compiling on Mac OS)_
+
 
 ## Running
 
