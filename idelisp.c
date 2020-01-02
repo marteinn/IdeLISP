@@ -768,6 +768,30 @@ ideobj* builtin_type(ideenv* env, ideobj* obj) {
     return type;
 }
 
+ideobj* builtin_len(ideenv* env, ideobj* obj) {
+    IASSERT_NUM("len", obj, 1);
+
+    ideobj *len_obj;
+
+    switch (obj->cell[0]->type) {
+        case IDEOBJ_SEXPR:
+        case IDEOBJ_QEXPR:
+            len_obj = ideobj_num(obj->cell[0]->count);
+            break;
+        case IDEOBJ_STR:
+            len_obj = ideobj_num(strlen(obj->cell[0]->str));
+            break;
+        default:
+            len_obj = ideobj_err(
+                "Type %s does not support len",
+                idetype_name(obj->cell[0]->type)
+            );
+    }
+
+    ideobj_del(obj);
+    return len_obj;
+}
+
 ideobj* builtin_join(ideenv* env, ideobj* obj) {
     for (int i=0; i<obj->count; i++) {
         IASSERT_TYPE("join", obj, i, IDEOBJ_QEXPR);
@@ -1407,6 +1431,7 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "load", builtin_load);
     ideenv_add_builtin(env, "error", builtin_error);
     ideenv_add_builtin(env, "type", builtin_type);
+    ideenv_add_builtin(env, "len", builtin_len);
 
     // Functions
     ideenv_add_builtin(env, "fn", builtin_fn);

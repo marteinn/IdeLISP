@@ -45,12 +45,6 @@
 (defn '(trd) '(items)
   '(eval (head (tail (tail items)))))
 
-; Quoted list length
-(defn '(len) '(items)
-  '(if (not items)
-    '(0)
-    '(+ 1 (len (tail items)))))
-
 ; Retrive element at list index
 (defn '(nth) '(n items)
   '(if (== n 0)
