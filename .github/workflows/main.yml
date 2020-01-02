@@ -1,0 +1,20 @@
+
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Checkout mpc
+      run: git clone https://github.com/orangeduck/mpc.git
+    - name: Install deps
+      run: sudo apt-get install libedit-dev
+    - name: Copy mpc
+      run: cp ./mpc/mpc.c ./mpc.c && cp ./mpc/mpc.h ./mpc.h
+    - name: Compile
+      run: make build
+    - name: Run tests
+      run: ./bin/idelisp -f tests.ilisp
