@@ -161,6 +161,14 @@ Returns true if all elements match predicate. From the standard library.
 (all not '(0 0))
 ```
 
+### `empty?`
+
+Returns true if list is empty
+
+```
+(empty? '())
+```
+
 ## Functions
 
 ### `defn`

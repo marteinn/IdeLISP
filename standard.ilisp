@@ -136,6 +136,12 @@
         '(any f (tail items))
         '(false))))
 
+; Returns true if list is empty
+(defn '(empty?) '(items)
+  '(cond
+    '((== (len items) 0) false)
+    '(true true)))
+
 ;; Conditional
 
 (defn '(cond) '(&rest cs)
