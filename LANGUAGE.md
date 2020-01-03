@@ -153,6 +153,14 @@ Returns true if any of the elements match predicate. From the standard library.
 (any not '(0 0))
 ```
 
+### `all`
+
+Returns true if all elements match predicate. From the standard library.
+
+```
+(all not '(0 0))
+```
+
 ## Functions
 
 ### `defn`
