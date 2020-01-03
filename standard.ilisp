@@ -107,6 +107,7 @@
     '(acc)
     '(foldl f (f acc (fst items)) (tail items))))
 
+; Combine two lists into pairs
 (defn '(zip) '(x y)
   '(if (or (not x) (not y))
     '('())
