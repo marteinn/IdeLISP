@@ -52,12 +52,18 @@ Functions that are built into the evaluator
 
 ```
 (join 1 2 3)
+
+(type join)
+>> "Builtin"
 ```
 
 ### String
 
 ```
 "hello"
+
+(type "hello")
+>> "String"
 ```
 
 ### S-Expressions
@@ -141,10 +147,11 @@ Evaluates pairs with test and value, if test is true the value are returned. Fro
 
 ## Lists
 
+### `list`
 ### `head`
 ### `tail`
 ### `join`
-### `list`
+### `eval`
 
 ## Functions
 
@@ -231,7 +238,7 @@ Convert a list of values to a string. (From the standard library).
 | `/`       | Division                       |                                 |
 | `-`       | Subtraction                    | Arithmetic negation             |
 | `%`       | Modulo                         |                                 |
-| `^        | Exponent                       |                                 |
+| `^`       | Exponent                       |                                 |
 | `min`     | Min value                      |                                 |
 | `max`     | Max value                      |                                 |
 | `==`      | Equality                       |                                 |
@@ -244,19 +251,22 @@ Convert a list of values to a string. (From the standard library).
 | `or`      | Logical or                     |                                 |
 | `not`     |                                | Logical negation                |
 
-## Builtins
+These operators are called like this
 
-| Signature                                                                    |
-| ---------------------------------------------------------------------------- |
-| `eval`                                                                       |
-| `head`                                                                       |
-| `tail`                                                                       |
-| `join`                                                                       |
-| `list`                                                                       |
-| `join`                                                                       |
+```
+(+ 1 1 1)
+(/ 10 2)
+(- 5 2)
+(% 5 2)
+```
 
-## External modules
+## System
+
+### `load`
+
+Loads and evaluates external code.
 
 ```
 (load "standard.ilisp")
+>> ()
 ```

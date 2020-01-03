@@ -147,6 +147,9 @@
 ; Get products of args
 (defn '(product) '(items) '(foldl * 1 items))
 
+; Increase int by one
+(defn '(inc) '(x) '(+ x 1))
+
 ;; String
 
 ; Construct string from list
