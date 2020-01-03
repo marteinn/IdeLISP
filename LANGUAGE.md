@@ -63,11 +63,24 @@ Exits the prompt.
 exit ()
 ```
 
-## If
+## Conditionals
+
+### `If`
 
 ```
 (if (== 1 1) '(+ 1 1) '(+ 2 2))
 >> 4
+```
+
+### `cond`
+
+Evaluates pairs with test and value, if test is true the value are returned. From standard library.
+
+```
+(cond
+    '((== x 0) "zero")
+    '((== x 1) "one")
+    '(true "other"))
 ```
 
 ## Lists

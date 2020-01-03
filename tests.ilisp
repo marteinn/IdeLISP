@@ -101,7 +101,7 @@
 (assert-eq (product '(1 2 3 4)) 24)
 
 (defn '(name-of-num) '(x)
-  '(select
+  '(cond
     '((== x 0) "zero")
     '((== x 1) "one")
     '(true "other")))

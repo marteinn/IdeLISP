@@ -121,14 +121,14 @@
 
 ;; Conditional
 
-(defn '(select) '(&rest cs)
+(defn '(cond) '(&rest cs)
   '(if (not cs)
     '(error "No cases found")
     '(if (fst (fst cs))
       '(snd (fst cs))
       '(if (== (- (len cs) 1) 0)
         '(error "No matching case found")
-        '(unpack select (tail cs))))))
+        '(unpack cond (tail cs))))))
 
 (defn '(case) '(needle &rest cs)
   '(if (not cs)
@@ -157,7 +157,7 @@
 
 ; Fibonacci
 (defn '(fib) '(x)
-  '(select
+  '(cond
     '((== x 0) 0)
     '((== x 1) 1)
     '(1 (+ (fib (- x 1)) (fib (- x 2))))))
