@@ -117,14 +117,6 @@ Bind variables and evaluate expressions in a local context
     '(concat firstname " " lastname))
 ```
 
-### `exit`
-
-Exits the prompt.
-
-```
-exit ()
-```
-
 ## Conditionals
 
 ### `If`
@@ -259,6 +251,17 @@ These operators are called like this
 (- 5 2)
 (% 5 2)
 (^ 10 3)
+(min 1 100)
+(max 200 1000)
+(== 1 1)
+(!= 1 0)
+(< 1 10)
+(<= 10 10)
+(> 2 1)
+(>= 2 2)
+(and (== 1 1) 1 (> 3 2))
+(or (== 1 0) (== 2 2))
+(not 0)
 ```
 
 ## System
@@ -271,3 +274,14 @@ Loads and evaluates external code.
 (load "standard.ilisp")
 >> ()
 ```
+
+### `exit`
+
+Exits the prompt.
+
+```
+exit ()
+```
+
+### `print`
+### `type`
