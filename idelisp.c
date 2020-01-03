@@ -1496,7 +1496,7 @@ int main(int argc, char** argv) {
             decimal  : /-?[0-9]+\\.[0-9]+/ ;                                  \
             number   : /-?[0-9]+/ ;                                           \
             string   : /\"(\\\\.|[^\"])*\"/ ;                                 \
-            symbol   : /[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&]+/ ;                    \
+            symbol   : /[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&%]+/ ;                   \
             comment  : /;[^\\r\\n]*/ ;                                        \
             sexpr    : '(' <expr>* ')' ;                                      \
             qexpr    : \"'(\" <expr>* ')' ;                                   \
