@@ -14,11 +14,67 @@
 
 ## Types
 
-- Number
-- Decimal
-- Symbol
-- Function
-- String
+### Number
+
+Integer represented in signed 64 bit integer.
+
+```
+1
+```
+
+(Max value is `−9,223,372,036,854,775,807`, `+9,223,372,036,854,775,807`)
+
+### Decimal
+
+A 64 bit floating point in the [IEEE 754 double precision floating point format](https://en.wikipedia.org/wiki/Double-precision_floating-point_format).
+
+```
+1.1
+```
+
+### Function
+
+```
+(fn '(arg1 arg2) '(+ arg1 arg2))
+```
+
+### Symbol
+
+Pointer to a value, used in quoted expressions.
+
+```
+'(symbol1 symbol2)
+```
+
+### Builtin
+
+Functions that are built into the evaluator
+
+```
+(join 1 2 3)
+```
+
+### String
+
+```
+"hello"
+```
+
+### S-Expressions
+
+Represents tree data structure.
+
+```
+(fn (1 2 3))
+```
+
+### Q-Expressions
+
+Represents unevaluated (`quoted`) expressions
+
+```
+'(fn (1 2 3))'
+```
 
 ## Globals
 
