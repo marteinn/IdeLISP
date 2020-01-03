@@ -24,6 +24,14 @@
 (assert-eq (% 3 2) 1)
 (assert-eq (min 5 10) 5)
 (assert-eq (max 5 10) 10)
+(assert-eq (== 1 1) 1)
+(assert-eq (== 1 0) 0)
+(assert-eq (!= 1 0) 1)
+(assert-eq (!= 1 1) 0)
+(assert-eq (> 1 0) 1)
+(assert-eq (>= 1 1) 1)
+(assert-eq (< 1 1) 0)
+(assert-eq (<= 1 1) 1)
 
 ; decimal
 (assert-eq (type 1.1) "Decimal")
@@ -38,6 +46,14 @@
 (assert-eq (min 5.0 10.0) 5.0)
 (assert-eq (max 5.0 10.1) 10.1)
 (assert-eq (== (+ 13 0.2 0.2 0.1) (- 14 0.2 0.2 0.1)) 1)
+(assert-eq (== 1.0 1.0) 1)
+(assert-eq (== 1.0 0.0) 0)
+(assert-eq (!= 1.0 0.0) 1)
+(assert-eq (!= 1.0 1.0) 0)
+(assert-eq (> 1.0 0.0) 1)
+(assert-eq (>= 1.0 1.0) 1)
+(assert-eq (< 1.0 1.0) 0)
+(assert-eq (<= 1.0 1.0) 1)
 
 ; str
 (assert-eq (type "hi") "String")
@@ -45,6 +61,8 @@
 (assert-eq (str 0) "0")
 (assert-eq (str 1.1) "1.1")
 (assert-eq (str 1.111) "1.111")
+(assert-eq (== "hi" "hi") 1)
+(assert-eq (!= "hi" "hi") 0)
 ;; (assert-eq (str 1.1015510001) "1.1015510001") ;
 
 ; not

@@ -258,6 +258,7 @@ These operators are called like this
 (/ 10 2)
 (- 5 2)
 (% 5 2)
+(^ 10 3)
 ```
 
 ## System

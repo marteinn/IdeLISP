@@ -1043,10 +1043,7 @@ ideobj* builtin_max(ideenv* env, ideobj* obj) {
     return builtin_op(env, obj, "max");
 }
 
-ideobj* builtin_ord(ideenv *env, ideobj* obj, char* operator) {
-    IASSERT_TYPE(operator, obj, 0, IDEOBJ_NUM);
-    IASSERT_TYPE(operator, obj, 1, IDEOBJ_NUM);
-
+ideobj* builtin_ord_num(ideenv *env, ideobj* obj, char* operator) {
     ideobj* left = ideobj_pop(obj, 0);
     ideobj* right = ideobj_pop(obj, 0);
 
@@ -1069,6 +1066,54 @@ ideobj* builtin_ord(ideenv *env, ideobj* obj, char* operator) {
 
     ideobj_del(obj);
     return ideobj_num(status);
+}
+
+ideobj* builtin_ord_decimal(ideenv *env, ideobj* obj, char* operator) {
+    ideobj* left = ideobj_pop(obj, 0);
+    ideobj* right = ideobj_pop(obj, 0);
+
+    double left_value = left->decimal;
+    double right_value = right->decimal;
+
+    if (left->type == IDEOBJ_NUM) {
+        left_value = (double) left->num;
+    }
+
+    if (right->type == IDEOBJ_NUM) {
+        right_value = (double) right->num;
+    }
+
+    int status;
+    if (strcmp(operator, ">") == 0) {
+        status = left_value > right_value;
+    }
+
+    if (strcmp(operator, ">=") == 0) {
+        status = left_value >= right_value;
+    }
+
+    if (strcmp(operator, "<") == 0) {
+        status = left_value < right_value;
+    }
+
+    if (strcmp(operator, "<=") == 0) {
+        status = left_value <= right_value;
+    }
+
+    ideobj_del(obj);
+    return ideobj_num(status);
+}
+
+ideobj* builtin_ord(ideenv *env, ideobj* obj, char* operator) {
+    if (ideobj_cells_is_type(obj, IDEOBJ_NUM)) {
+        return builtin_ord_num(env, obj, operator);
+    }
+
+    if (ideobj_is_numeric(obj->cell[0])) {
+        return builtin_ord_decimal(env, obj, operator);
+    }
+
+    return ideobj_err("Cannot %s operate on non-number", operator);
 }
 
 ideobj* builtin_gt(ideenv* env, ideobj* obj) {
