@@ -139,3 +139,5 @@
 (assert-eq (fib 12) 144)
 (assert-eq (inc 1) 2)
 
+(assert-eq (any not '(0 0)) 1)
+(assert-eq (any not '(1 1)) 0)

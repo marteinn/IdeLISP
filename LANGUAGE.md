@@ -145,6 +145,14 @@ Evaluates pairs with test and value, if test is true the value are returned. Fro
 ### `join`
 ### `eval`
 
+### `any`
+
+Returns true if any of the elements match predicate. From the standard library.
+
+```
+(any not '(0 0))
+```
+
 ## Functions
 
 ### `defn`

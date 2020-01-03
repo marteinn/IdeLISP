@@ -120,6 +120,14 @@
           (tail x)
           (tail y)))))
 
+; Returns true if any of the elements match predicate
+(defn '(any) '(f items)
+  '(if (== items '())
+     '(false)
+     '(if (f (fst items))
+        '(true)
+        '(any f (tail items)))))
+
 ;; Conditional
 
 (defn '(cond) '(&rest cs)
