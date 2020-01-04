@@ -239,6 +239,24 @@ Convert a list of values to a string. (From the standard library).
 >> "scott"
 ```
 
+### `lower-case`
+
+Convert string to lowercase
+
+```
+(lower-case "HELLO WORLD")
+>> "hello world"
+```
+
+### `upper-case`
+
+Convert string to uppercase
+
+```
+(upper-case "hello world")
+>> "HELLO WORLD"
+```
+
 ## Macros
 
 ```

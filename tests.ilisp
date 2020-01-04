@@ -65,6 +65,14 @@
 (assert-eq (!= "hi" "hi") 0)
 ;; (assert-eq (str 1.1015510001) "1.1015510001") ;
 
+; uppercase
+(assert-eq (upper-case "hello") "HELLO")
+(assert-eq (upper-case "HELLO") "HELLO")
+
+; lowercase
+(assert-eq (lower-case "HEllO") "hello")
+(assert-eq (lower-case "hello") "hello")
+
 ; not
 (assert-eq (not 1) 0)
 (assert-eq (not 0) 1)

@@ -648,6 +648,36 @@ ideobj* builtin_str_split(ideenv* env, ideobj *obj) {
     return list;
 }
 
+ideobj* builtin_str_uppercase(ideenv* env, ideobj *obj) {
+    IASSERT_NUM("upper-case", obj, 1);
+    IASSERT_TYPE("upper-case", obj, 0, IDEOBJ_STR);
+
+    char* ucase_str = malloc(strlen(obj->cell[0]->str) + 1);
+    strcpy(ucase_str, obj->cell[0]->str);
+
+    for (int i=0; i<strlen(ucase_str); i++) {
+        ucase_str[i] = toupper(ucase_str[i]);
+    }
+
+    ideobj_del(obj);
+    return ideobj_str(ucase_str);
+}
+
+ideobj* builtin_str_lowercase(ideenv* env, ideobj *obj) {
+    IASSERT_NUM("lower-case", obj, 1);
+    IASSERT_TYPE("lower-case", obj, 0, IDEOBJ_STR);
+
+    char* ucase_str = malloc(strlen(obj->cell[0]->str) + 1);
+    strcpy(ucase_str, obj->cell[0]->str);
+
+    for (int i=0; i<strlen(ucase_str); i++) {
+        ucase_str[i] = tolower(ucase_str[i]);
+    }
+
+    ideobj_del(obj);
+    return ideobj_str(ucase_str);
+}
+
 ideobj* builtin_str(ideenv* env, ideobj *obj) {
     IASSERT_NUM("str", obj, 1);
     char* source = "";
@@ -1486,6 +1516,8 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "concat", builtin_concat);
     ideenv_add_builtin(env, "str-split", builtin_str_split);
     ideenv_add_builtin(env, "str", builtin_str);
+    ideenv_add_builtin(env, "upper-case", builtin_str_uppercase);
+    ideenv_add_builtin(env, "lower-case", builtin_str_lowercase);
 
     // Operators
     ideenv_add_builtin(env, "+", builtin_add);
