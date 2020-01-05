@@ -123,6 +123,12 @@ x
 >> 1
 ```
 
+```
+(defl '(x y z) 1 2 3)
+z
+>> 3
+```
+
 ### `let`
 
 Bind variables and evaluate expressions in a local context

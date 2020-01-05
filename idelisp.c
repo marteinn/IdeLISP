@@ -1000,9 +1000,10 @@ ideobj* builtin_op(ideenv* env, ideobj* obj, char* operator) {
 
 ideobj* builtin_var(ideenv* env, ideobj* obj, char* func) {
     IASSERT_TYPE(func, obj, 0, IDEOBJ_QEXPR);
-    IASSERT_NUM(func, obj, 2);
 
     ideobj* keys = obj->cell[0];
+
+    IASSERT_NUM(func, obj, keys->count + 1);
 
     for (int i=0; i<keys->count; i++) {
         IASSERT(
@@ -1016,7 +1017,8 @@ ideobj* builtin_var(ideenv* env, ideobj* obj, char* func) {
     IASSERT(
         obj,
         keys->count == obj->count-1,
-        "Function received incorrect number of names vs values"
+        "Function %s received incorrect number of names vs values",
+        func
     );
 
     for (int i=0; i<keys->count; i++) {
@@ -1069,7 +1071,11 @@ ideobj* builtin_let(ideenv* env, ideobj* obj) {
     }
 
     for (int i=0; i<obj->cell[0]->count; i++) {
-        ideenv_put(local_env, obj->cell[0]->cell[i], obj->cell[1]->cell[i]);
+        ideenv_put(
+            local_env,
+            obj->cell[0]->cell[i],
+            obj->cell[1]->cell[i]
+        );
     }
 
     return builtin_eval(
