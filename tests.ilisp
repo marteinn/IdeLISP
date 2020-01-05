@@ -1,6 +1,6 @@
 (load "standard.ilisp")
 
-(defn '(assert-eq) '(value expected)
+(defn :assert-eq '(value expected)
   '(if (== value expected)
     '(true)
     '(error
@@ -91,7 +91,7 @@
 (assert-eq (not 0.1) 1)
 (assert-eq (not '()) 1)
 
-(defn '(zero-arity-fn) '()
+(defn :zero-arity-fn '()
   '(1))
 
 ; Calling fn with zero arity
@@ -104,6 +104,13 @@
 (assert-eq (len "hello") 5)
 (assert-eq (len '(1 2 3)) 3)
 (assert-eq (len (list 1 2 3)) 3)
+
+; def
+(def '(global-val) 55)
+(assert-eq global-val 55)
+
+(defl '(local-val) 44)
+(assert-eq local-val 44)
 
 ;
 ; Standard library functions
@@ -137,7 +144,7 @@
 (assert-eq (sum '(1 2 3)) 6)
 (assert-eq (product '(1 2 3 4)) 24)
 
-(defn '(name-of-num) '(x)
+(defn :name-of-num '(x)
   '(cond
     '((== x 0) "zero")
     '((== x 1) "one")
@@ -146,7 +153,7 @@
 (assert-eq (name-of-num 1) "one")
 (assert-eq (name-of-num 3) "other")
 
-(defn '(day-name) '(x)
+(defn :day-name '(x)
   '(case x
      '(0 "Monday")
      '(1 "Tuesday")

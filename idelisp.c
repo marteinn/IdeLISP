@@ -999,7 +999,8 @@ ideobj* builtin_op(ideenv* env, ideobj* obj, char* operator) {
 }
 
 ideobj* builtin_var(ideenv* env, ideobj* obj, char* func) {
-    IASSERT_TYPE("fn", obj, 0, IDEOBJ_QEXPR);
+    IASSERT_TYPE(func, obj, 0, IDEOBJ_QEXPR);
+    IASSERT_NUM(func, obj, 2);
 
     ideobj* keys = obj->cell[0];
 
@@ -1104,26 +1105,16 @@ ideobj* builtin_fn(ideenv* env, ideobj* obj) {
 
 ideobj* builtin_defn(ideenv* env, ideobj* obj) {
     IASSERT_NUM("defn", obj, 3);
-    IASSERT_TYPE("defn", obj, 0, IDEOBJ_QEXPR);
+    IASSERT_TYPE("defn", obj, 0, IDEOBJ_KEYWORD);
     IASSERT_TYPE("defn", obj, 1, IDEOBJ_QEXPR);
     IASSERT_TYPE("defn", obj, 2, IDEOBJ_QEXPR);
 
-    for (int i=0; i<obj->cell[0]->count; i++) {
-        IASSERT(
-            obj,
-            obj->cell[0]->cell[i]->type == IDEOBJ_SYMBOL,
-            "Cannot define non-symbol, got %s, expected %s",
-            idetype_name(obj->cell[0]->cell[i]->type),
-            idetype_name(IDEOBJ_SYMBOL)
-        );
-    }
-
-    ideobj* name = ideobj_pop(obj, 0)->cell[0];
+    ideobj* name = ideobj_pop(obj, 0);
     ideobj* params = ideobj_pop(obj, 0);
     ideobj* body = ideobj_pop(obj, 0);
     ideobj* fn = ideobj_fun(params, body);
 
-    ideenv_global_put(env, name, fn);
+    ideenv_global_put(env, ideobj_symbol(name->keyword), fn);
 
     ideobj_del(obj);
     ideobj_del(fn);

@@ -191,7 +191,7 @@ Returns true if list is empty
 Creates function and adds it to the global scope
 
 ```
-(defn '(plus-two) '(x) '(+ 2 x))
+(defn :plus-two '(x) '(+ 2 x))
 (plus-two 2)
 >> 4
 ```

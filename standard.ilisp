@@ -8,11 +8,11 @@
 ;; Function
 
 ; Unpack list to function
-(defn '(unpack) '(f items)
+(defn :unpack '(f items)
   '(eval (join (list f) items)))
 
 ; Unapply list to function
-(defn '(pack) '(f &rest items)
+(defn :pack '(f &rest items)
   '(f items))
 
 ; Curry/uncurry aliases
@@ -20,43 +20,43 @@
 (def '(uncurry) pack)
 
 ; Call fns in sequence
-(defn '(do) '(&rest items)
+(defn :do '(&rest items)
   '(if (== items nil)
     '(nil)
     '(last items)))
 
 ; Flip arguments
-(defn '(flip) '(f x y)
+(defn :flip '(f x y)
   '(f y x))
 
 ; Compose function
-(defn '(comp) '(f g fs)
+(defn :comp '(f g fs)
   '(f (g fs)))
 
 ;; List functions
 
 ; Retrive unwrapped first, second and third element in list
-(defn '(fst) '(items)
+(defn :fst '(items)
   '(eval (head items)))
 
-(defn '(snd) '(items)
+(defn :snd '(items)
   '(eval (head (tail items))))
 
-(defn '(trd) '(items)
+(defn :trd '(items)
   '(eval (head (tail (tail items)))))
 
 ; Retrive element at list index
-(defn '(nth) '(n items)
+(defn :nth '(n items)
   '(if (== n 0)
     '(fst items)
     '(nth (- n 1) (tail items))))
 
 ; Retrive last element of list
-(defn '(last) '(items)
+(defn :last '(items)
   '(nth (- (len items) 1) items))
 
 ; Retrive elements from list
-(defn '(take) '(num items)
+(defn :take '(num items)
   '(if (== num 0)
     '('())
     '(join
@@ -66,17 +66,17 @@
         (tail items)))))
 
 ; Drop elements from list
-(defn '(drop) '(num items)
+(defn :drop '(num items)
   '(if (== num 0)
     '(items)
     '(drop (- num 1) (tail items))))
 
 ; Split list after num
-(defn '(split) '(num items)
+(defn :split '(num items)
   '(list (take num items) (drop num items)))
 
 ; Check if element is in list
-(defn '(elem) '(needle items)
+(defn :elem '(needle items)
   '(if (== items '())
     '(false)
     '(if (== needle (fst items))
@@ -84,7 +84,7 @@
       '(elem needle (tail items)))))
 
 ; Apply function on every element in list
-(defn '(map) '(f items)
+(defn :map '(f items)
   '(if (== items '())
     '('())
     '(join
@@ -92,7 +92,7 @@
       (map f (tail items)))))
 
 ; Filter list by predicate
-(defn '(filter) '(p items)
+(defn :filter '(p items)
   '(if (== items '())
     '('())
     '(join
@@ -102,13 +102,13 @@
        (filter p (tail items)))))
 
 ; Fold value left to right
-(defn '(foldl) '(f acc items)
+(defn :foldl '(f acc items)
   '(if (== items '())
     '(acc)
     '(foldl f (f acc (fst items)) (tail items))))
 
 ; Combine two lists into pairs
-(defn '(zip) '(x y)
+(defn :zip '(x y)
   '(if (or (not x) (not y))
     '('())
     '(join
@@ -121,7 +121,7 @@
           (tail y)))))
 
 ; Returns true if any of the elements match predicate
-(defn '(any) '(f items)
+(defn :any '(f items)
   '(if (== items '())
      '(false)
      '(if (f (fst items))
@@ -129,7 +129,7 @@
         '(any f (tail items)))))
 
 ; Returns true if all elements match predicate
-(defn '(all) '(f items)
+(defn :all '(f items)
   '(if (== items '())
      '(true)
      '(if (f (fst items))
@@ -137,14 +137,14 @@
         '(false))))
 
 ; Returns true if list is empty
-(defn '(empty?) '(items)
+(defn :empty? '(items)
   '(cond
     '((== (len items) 0) false)
     '(true true)))
 
 ;; Conditional
 
-(defn '(cond) '(&rest cs)
+(defn :cond '(&rest cs)
   '(if (not cs)
     '(error "No cases found")
     '(if (fst (fst cs))
@@ -153,7 +153,7 @@
         '(error "No matching case found")
         '(unpack cond (tail cs))))))
 
-(defn '(case) '(needle &rest cs)
+(defn :case '(needle &rest cs)
   '(if (not cs)
     '(error "No case found")
     '(if (== needle (fst (fst cs)))
@@ -165,24 +165,24 @@
 ;; Numerical
 
 ; Get sum of args
-(defn '(sum) '(items) '(foldl + 0 items))
+(defn :sum '(items) '(foldl + 0 items))
 
 ; Get products of args
-(defn '(product) '(items) '(foldl * 1 items))
+(defn :product '(items) '(foldl * 1 items))
 
 ; Increase int by one
-(defn '(inc) '(x) '(+ x 1))
+(defn :inc '(x) '(+ x 1))
 
 ;; String
 
 ; Construct string from list
-(defn '(str-join) '(values)
+(defn :str-join '(values)
   '(foldl concat "" values))
 
 ;; Misc
 
 ; Fibonacci
-(defn '(fib) '(x)
+(defn :fib '(x)
   '(cond
     '((== x 0) 0)
     '((== x 1) 1)
