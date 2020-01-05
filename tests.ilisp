@@ -18,7 +18,21 @@
 (assert-eq (type (hash-map '())) "HashMap")
 (assert-eq (len (hash-map '("a" 1))) 1)
 (assert-eq (key (hash-map '("a" 1)) "a") 1)
-(assert-eq (key (hash-map '(:a 1)) :a) 1)
+(assert-eq
+  (key
+    (assoc
+      (hash-map '())
+      :a
+      1)
+    :a)
+  1)
+
+(assert-eq
+  (len
+    (deassoc
+      (hash-map '(:a 1))
+      :a))
+  0)
 
 ; keywords
 (assert-eq (type :hello) "Keyword")

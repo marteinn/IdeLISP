@@ -414,7 +414,14 @@ void ideobj_print(ideobj* obj) {
             break;
         case IDEOBJ_HASHMAP:
             putchar('{');
-            /*ideobj_expr_print(obj, "(", ")");*/
+            for (int i=0; i<obj->count; i++) {
+                if (i > 0) {
+                    putchar(' ');
+                }
+                ideobj_print(obj->keys[i]);
+                printf(": ");
+                ideobj_print(obj->cell[i]);
+            }
             putchar('}');
             break;
     }
@@ -761,6 +768,16 @@ ideobj* builtin_str_lowercase(ideenv* env, ideobj *obj) {
     return ideobj_str(ucase_str);
 }
 
+void ideobj_hashmap_put(ideobj* hm, ideobj* key, ideobj* val) {
+    hm->count++;
+
+    hm->keys = realloc(hm->keys, sizeof(ideobj*) * hm->count);
+    hm->keys[hm->count-1] = key;
+
+    hm->cell = realloc(hm->cell, sizeof(ideobj*) * hm->count);
+    hm->cell[hm->count-1] = val;
+}
+
 ideobj* builtin_hashmap(ideenv* env, ideobj* obj) {
     IASSERT_NUM("hash-map", obj, 1);
     IASSERT_TYPE("hash-map", obj, 0, IDEOBJ_QEXPR);
@@ -776,18 +793,21 @@ ideobj* builtin_hashmap(ideenv* env, ideobj* obj) {
         ideobj *key = ideobj_pop(obj->cell[0], 0);
         ideobj *value = ideobj_pop(obj->cell[0], 0);
 
-        hm->count++;
+        ideobj_hashmap_put(hm, key, value);
 
-        hm->keys = realloc(hm->keys, sizeof(ideobj*) * hm->count);
-        hm->keys[hm->count-1] = key;
+        // hm->count++;
 
-        hm->cell = realloc(hm->cell, sizeof(ideobj*) * hm->count);
-        hm->cell[hm->count-1] = value;
+        // hm->keys = realloc(hm->keys, sizeof(ideobj*) * hm->count);
+        // hm->keys[hm->count-1] = key;
+
+        // hm->cell = realloc(hm->cell, sizeof(ideobj*) * hm->count);
+        // hm->cell[hm->count-1] = value;
     }
 
     ideobj_del(obj);
     return hm;
 }
+
 
 ideobj* builtin_hashmap_key(ideenv* env, ideobj* obj) {
     IASSERT_NUM("key", obj, 2);
@@ -804,6 +824,65 @@ ideobj* builtin_hashmap_key(ideenv* env, ideobj* obj) {
      }
 
     return ideobj_err("Key not found");
+}
+
+ideobj* builtin_hashmap_assoc(ideenv* env, ideobj* obj) {
+    IASSERT_NUM("assoc", obj, 3);
+    IASSERT_TYPE("assoc", obj, 0, IDEOBJ_HASHMAP);
+
+    ideobj *hm = ideobj_pop(obj, 0);
+    ideobj *key = ideobj_pop(obj, 0);
+    ideobj *val= ideobj_pop(obj, 0);
+
+    for (int i=0; i<hm->count; i++) {
+        if (ideobj_eq(key, hm->keys[i])) {
+            ideobj_del(obj);
+            hm->cell[i] = ideobj_copy(val);
+            return hm;
+        }
+    }
+
+    ideobj_hashmap_put(hm, key, val);
+    return hm;
+}
+
+ideobj* builtin_hashmap_deassoc(ideenv* env, ideobj* obj) {
+    IASSERT_NUM("assoc", obj, 2);
+    IASSERT_TYPE("assoc", obj, 0, IDEOBJ_HASHMAP);
+
+    ideobj *hm = ideobj_pop(obj, 0);
+    ideobj *key = ideobj_pop(obj, 0);
+
+    int index = -1;
+
+    for (int i=0; i<hm->count; i++) {
+        if (ideobj_eq(key, hm->keys[i])) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index == -1) {
+        return ideobj_err("Key not found in hashmap");
+    }
+
+    memmove(
+        &hm->keys[index],
+        &hm->keys[index+1],
+        sizeof(ideobj*) * (hm->count-index-1)
+    );
+
+    memmove(
+        &hm->cell[index],
+        &hm->cell[index+1],
+        sizeof(ideobj*) * (hm->count-index-1)
+    );
+
+    hm->count--;
+    hm->keys = realloc(hm->keys, sizeof(ideobj*) * hm->count);
+    hm->cell = realloc(hm->cell, sizeof(ideobj*) * hm->count);
+    return hm;
+
 }
 
 ideobj* builtin_str(ideenv* env, ideobj *obj) {
@@ -1677,6 +1756,8 @@ void ideenv_add_builtins(ideenv* env) {
     // HashMap
     ideenv_add_builtin(env, "hash-map", builtin_hashmap);
     ideenv_add_builtin(env, "key", builtin_hashmap_key);
+    ideenv_add_builtin(env, "assoc", builtin_hashmap_assoc);
+    ideenv_add_builtin(env, "deassoc", builtin_hashmap_deassoc);
 
     // Operators
     ideenv_add_builtin(env, "+", builtin_add);

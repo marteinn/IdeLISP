@@ -93,9 +93,35 @@ Represents unevaluated (`quoted`) expressions
 
 ### HashMap
 
+
+### `hashmap`
+
 ```
 (hashmap '(:key 1))
 ```
+
+### `key`
+
+```
+(key hashmap :key)
+```
+
+### `assoc`
+
+Add key to hashmap
+
+```
+(ssoc hashmap :key)
+```
+
+### `dissoc`
+
+Remove key from hashmap
+
+```
+(dissoc hashmap :key)
+```
+
 
 ## Globals
 
