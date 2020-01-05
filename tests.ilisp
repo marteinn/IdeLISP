@@ -1,6 +1,5 @@
 (load "standard.ilisp")
 
-
 (defn '(assert-eq) '(value expected)
   '(if (== value expected)
     '(true)
@@ -14,6 +13,16 @@
 ;
 ; Builtins
 ;
+
+; hashmap
+(assert-eq (type (hash-map '())) "HashMap")
+(assert-eq (len (hash-map '("a" 1))) 1)
+(assert-eq (key (hash-map '("a" 1)) "a") 1)
+(assert-eq (key (hash-map '(:a 1)) :a) 1)
+
+; keywords
+(assert-eq (type :hello) "Keyword")
+(assert-eq :hello :hello)
 
 ; int
 (assert-eq (type 1) "Number")

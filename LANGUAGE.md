@@ -46,6 +46,15 @@ Pointer to a value, used in quoted expressions.
 '(symbol1 symbol2)
 ```
 
+### Keyword
+
+Symbolic identifiers that evaluates to themselves
+
+```
+:symbol
+>> :symbol
+```
+
 ### Builtin
 
 Functions that are built into the evaluator
@@ -80,6 +89,12 @@ Represents unevaluated (`quoted`) expressions
 
 ```
 '(fn (1 2 3))'
+```
+
+### HashMap
+
+```
+(hashmap '(:key 1))
 ```
 
 ## Globals

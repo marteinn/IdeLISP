@@ -13,7 +13,9 @@ enum {
     IDEOBJ_DECIMAL,
     IDEOBJ_BUILTIN,
     IDEOBJ_FUN,
-    IDEOBJ_STR
+    IDEOBJ_STR,
+    IDEOBJ_HASHMAP,
+    IDEOBJ_KEYWORD
 };
 
 
@@ -31,6 +33,7 @@ struct ideobj {
     double decimal;
     char* err;
     char* symbol;
+    char* keyword;
     char* str;
     ibuiltin builtin;
 
@@ -40,6 +43,7 @@ struct ideobj {
 
     int count;
     struct ideobj** cell;
+    struct ideobj** keys;
 };
 
 struct ideenv {
@@ -54,6 +58,7 @@ mpc_parser_t* Number;
 mpc_parser_t* String;
 mpc_parser_t* Symbol;
 mpc_parser_t* Comment;
+mpc_parser_t* Keyword;
 mpc_parser_t* Sexpr;
 mpc_parser_t* Qexpr;
 mpc_parser_t* Expr;
@@ -148,6 +153,25 @@ ideobj* ideobj_str(char* str) {
     return obj;
 }
 
+ideobj* ideobj_keyword(char* keyword) {
+    ideobj* obj = malloc(sizeof(ideobj));
+
+    obj->type = IDEOBJ_KEYWORD;
+    obj->keyword = malloc(strlen(keyword) + 1);
+    strcpy(obj->keyword, keyword);
+    return obj;
+}
+
+ideobj* ideobj_hashmap(void) {
+    ideobj* obj = malloc(sizeof(ideobj));
+
+    obj->type = IDEOBJ_HASHMAP;
+    obj->count = 0;
+    obj->keys = NULL;
+    obj->cell = NULL;
+    return obj;
+}
+
 char* idetype_name(int type) {
     switch (type) {
         case IDEOBJ_ERR: return "Error";
@@ -159,6 +183,8 @@ char* idetype_name(int type) {
         case IDEOBJ_QEXPR: return "Quoted Expression";
         case IDEOBJ_SEXPR: return "S-Expression";
         case IDEOBJ_STR: return "String";
+        case IDEOBJ_KEYWORD: return "Keyword";
+        case IDEOBJ_HASHMAP: return "HashMap";
         default: return "Unknown";
     }
 }
@@ -169,6 +195,7 @@ void ideobj_del(ideobj* obj) {
     switch (obj->type) {
         case IDEOBJ_ERR: free(obj->err); break;
         case IDEOBJ_SYMBOL: free(obj->symbol); break;
+        case IDEOBJ_KEYWORD: free(obj->keyword); break;
         case IDEOBJ_NUM: break;
         case IDEOBJ_DECIMAL: break;
         case IDEOBJ_BUILTIN: break;
@@ -185,6 +212,14 @@ void ideobj_del(ideobj* obj) {
             free(obj->cell);
             break;
         case IDEOBJ_STR: free(obj->str); break;
+        case IDEOBJ_HASHMAP:
+            for (int i=0; i<obj->count; i++) {
+                ideobj_del(obj->keys[i]);
+                ideobj_del(obj->cell[i]);
+            }
+            free(obj->keys);
+            free(obj->cell);
+            break;
     }
 
     free(obj);
@@ -232,6 +267,19 @@ ideobj* ideobj_copy(ideobj* obj) {
             copy->str = malloc(strlen(obj->str) + 1);
             strcpy(copy->str, obj->str);
             break;
+        case IDEOBJ_KEYWORD:
+            copy->keyword = malloc(strlen(obj->keyword) + 1);
+            strcpy(copy->keyword, obj->keyword);
+            break;
+        case IDEOBJ_HASHMAP:
+            copy->count = obj->count;
+            copy->keys = malloc(sizeof(ideobj) * copy->count);
+            copy->cell = malloc(sizeof(ideobj) * copy->count);
+            for (int i=0; i<obj->count; i++) {
+                copy->keys[i] = ideobj_copy(obj->keys[i]);
+                copy->cell[i] = ideobj_copy(obj->cell[i]);
+            }
+            break;
     }
 
     return copy;
@@ -273,6 +321,8 @@ int ideobj_eq(ideobj* left, ideobj* right) {
             return 1;
         case IDEOBJ_STR:
             return strcmp(left->str, right->str) == 0;
+        case IDEOBJ_KEYWORD:
+            return strcmp(left->keyword, right->keyword) == 0;
     }
 
     return 0;
@@ -293,6 +343,8 @@ int ideobj_truthy(ideobj* obj) {
         case IDEOBJ_SEXPR:
             return obj->count > 0;
         case IDEOBJ_STR:
+            return strlen(obj->str) > 0;
+        case IDEOBJ_KEYWORD:
             return strlen(obj->str) > 0;
     }
 
@@ -338,6 +390,9 @@ void ideobj_print(ideobj* obj) {
         case IDEOBJ_SYMBOL:
             printf("%s", obj->symbol);
             break;
+        case IDEOBJ_KEYWORD:
+            printf(":%s", obj->keyword);
+            break;
         case IDEOBJ_SEXPR:
             ideobj_expr_print(obj, "(", ")");
             break;
@@ -356,6 +411,11 @@ void ideobj_print(ideobj* obj) {
             break;
         case IDEOBJ_STR:
             lval_print_str(obj);
+            break;
+        case IDEOBJ_HASHMAP:
+            putchar('{');
+            /*ideobj_expr_print(obj, "(", ")");*/
+            putchar('}');
             break;
     }
 }
@@ -678,6 +738,51 @@ ideobj* builtin_str_lowercase(ideenv* env, ideobj *obj) {
     return ideobj_str(ucase_str);
 }
 
+ideobj* builtin_hashmap(ideenv* env, ideobj* obj) {
+    IASSERT_NUM("hash-map", obj, 1);
+    IASSERT_TYPE("hash-map", obj, 0, IDEOBJ_QEXPR);
+
+    if ((obj->cell[0]->count % 2) != 0) {
+        ideobj_del(obj);
+        return ideobj_err("Uneven amount of key vs values");
+    }
+
+    ideobj *hm = ideobj_hashmap();
+
+    while (obj->cell[0]->count) {
+        ideobj *key = ideobj_pop(obj->cell[0], 0);
+        ideobj *value = ideobj_pop(obj->cell[0], 0);
+
+        hm->count++;
+
+        hm->keys = realloc(hm->keys, sizeof(ideobj*) * hm->count);
+        hm->keys[hm->count-1] = key;
+
+        hm->cell = realloc(hm->cell, sizeof(ideobj*) * hm->count);
+        hm->cell[hm->count-1] = value;
+    }
+
+    ideobj_del(obj);
+    return hm;
+}
+
+ideobj* builtin_hashmap_key(ideenv* env, ideobj* obj) {
+    IASSERT_NUM("key", obj, 2);
+    IASSERT_TYPE("key", obj, 0, IDEOBJ_HASHMAP);
+
+    ideobj *hm = ideobj_pop(obj, 0);
+    ideobj *key = ideobj_pop(obj, 0);
+
+     for (int i=0; i<hm->count; i++) {
+         if (ideobj_eq(key, hm->keys[i])) {
+             ideobj_del(obj);
+             return hm->cell[i];
+         }
+     }
+
+    return ideobj_err("Key not found");
+}
+
 ideobj* builtin_str(ideenv* env, ideobj *obj) {
     IASSERT_NUM("str", obj, 1);
     char* source = "";
@@ -806,6 +911,7 @@ ideobj* builtin_len(ideenv* env, ideobj* obj) {
     switch (obj->cell[0]->type) {
         case IDEOBJ_SEXPR:
         case IDEOBJ_QEXPR:
+        case IDEOBJ_HASHMAP:
             len_obj = ideobj_num(obj->cell[0]->count);
             break;
         case IDEOBJ_STR:
@@ -1278,9 +1384,14 @@ ideobj* builtin_load(ideenv* env, ideobj *obj) {
         return ideobj_sexpr();
     } else {
         char* result_err = mpc_err_string(result.error);
-        mpc_err_delete(result.error);
 
-        ideobj* err = ideobj_err("Could not load module %s", obj->cell[0]->str);
+        ideobj* err = ideobj_err(
+            "Could not load module %s, reason %s",
+            obj->cell[0]->str,
+            result_err
+        );
+
+        mpc_err_delete(result.error);
         free(result_err);
         ideobj_del(obj);
 
@@ -1448,10 +1559,19 @@ ideobj* ideobj_read_string(mpc_ast_t* node) {
     return obj;
 }
 
+ideobj* ideobj_read_keyword(mpc_ast_t* node) {
+    char* keyword = malloc(strlen(node->contents));
+    strcpy(keyword, node->contents+1);
+
+    ideobj* obj = ideobj_keyword(keyword);
+    return obj;
+}
+
 ideobj* ideobj_read(mpc_ast_t* node) {
     if (strstr(node->tag, "decimal")) { return ideobj_read_decimal(node); }
     if (strstr(node->tag, "number")) { return ideobj_read_num(node); }
     if (strstr(node->tag, "string")) { return ideobj_read_string(node); }
+    if (strstr(node->tag, "keyword")) { return ideobj_read_keyword(node); }
     if (strstr(node->tag, "symbol")) {
         return ideobj_symbol(node->contents);
     }
@@ -1519,6 +1639,10 @@ void ideenv_add_builtins(ideenv* env) {
     ideenv_add_builtin(env, "upper-case", builtin_str_uppercase);
     ideenv_add_builtin(env, "lower-case", builtin_str_lowercase);
 
+    // HashMap
+    ideenv_add_builtin(env, "hash-map", builtin_hashmap);
+    ideenv_add_builtin(env, "key", builtin_hashmap_key);
+
     // Operators
     ideenv_add_builtin(env, "+", builtin_add);
     ideenv_add_builtin(env, "-", builtin_sub);
@@ -1562,6 +1686,7 @@ int main(int argc, char** argv) {
     Number = mpc_new("number");
     String = mpc_new("string");
     Symbol = mpc_new("symbol");
+    Keyword = mpc_new("keyword");
     Comment = mpc_new("comment");
     Sexpr = mpc_new("sexpr");
     Qexpr = mpc_new("qexpr");
@@ -1573,15 +1698,25 @@ int main(int argc, char** argv) {
             decimal  : /-?[0-9]+\\.[0-9]+/ ;                                  \
             number   : /-?[0-9]+/ ;                                           \
             string   : /\"(\\\\.|[^\"])*\"/ ;                                 \
+            keyword  : /:[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&%\\?]+/ ;               \
             symbol   : /[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&%\\?]+/ ;                \
             comment  : /;[^\\r\\n]*/ ;                                        \
             sexpr    : '(' <expr>* ')' ;                                      \
             qexpr    : \"'(\" <expr>* ')' ;                                   \
-            expr     : <decimal> | <number> | <string> | <symbol> | <sexpr>   \
-                     | <qexpr> | <comment> ;                                  \
+            expr     : <decimal> | <number> | <string> | <keyword> | <symbol> \
+                     | <sexpr> | <qexpr> | <comment> ;                        \
             idelisp  : /^/ <expr>* /$/ ;                                      \
-        "
-        , Decimal, Number, String, Symbol, Comment, Sexpr, Qexpr, Expr, IdeLISP);
+        ",
+        Decimal,
+        Number,
+        String,
+        Keyword,
+        Symbol,
+        Comment,
+        Sexpr,
+        Qexpr,
+        Expr,
+        IdeLISP);
 
     ideenv* env = ideenv_new();
     ideenv_add_builtins(env);
@@ -1624,7 +1759,17 @@ int main(int argc, char** argv) {
     ideenv_del(env);
 
     mpc_cleanup(
-        9, Decimal, Number, String, Symbol, Comment, Sexpr, Qexpr, Expr, IdeLISP
+        10,
+        Decimal,
+        Number,
+        String,
+        Keyword,
+        Symbol,
+        Comment,
+        Sexpr,
+        Qexpr,
+        Expr,
+        IdeLISP
     );
     return 0;
 }
