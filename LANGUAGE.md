@@ -104,11 +104,11 @@ Represents unevaluated (`quoted`) expressions
 Set global variables
 
 ```
-(def '(x) 1)
+(def :x 1)
 x
 >> 1
 
-(def '(x y z) 1 2 3)
+(def '(x y z) '(1 2 3))
 z
 >> 3
 ```
@@ -118,13 +118,13 @@ z
 Set local variables
 
 ```
-(defl '(x) 1)
+(defl :x 1)
 x
 >> 1
 ```
 
 ```
-(defl '(x y z) 1 2 3)
+(defl '(x y z) '(1 2 3))
 z
 >> 3
 ```

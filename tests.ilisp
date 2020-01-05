@@ -23,6 +23,7 @@
 ; keywords
 (assert-eq (type :hello) "Keyword")
 (assert-eq :hello :hello)
+(assert-eq (keyword "hello") :hello)
 
 ; int
 (assert-eq (type 1) "Number")
@@ -106,10 +107,16 @@
 (assert-eq (len (list 1 2 3)) 3)
 
 ; def
-(def '(global-val) 55)
+(def '(global-val) '(55))
 (assert-eq global-val 55)
 
-(defl '(local-val) 44)
+(def :global-val-single 22)
+(assert-eq global-val-single 22)
+
+(def '(global-val-1 :global-val-2) '(11 22))
+(assert-eq global-val-2 22)
+
+(defl '(local-val) '(44))
 (assert-eq local-val 44)
 
 ;
@@ -126,7 +133,7 @@
 (let '(x) '(1)
   '(assert-eq x 1))
 
-(def '(mul-neg) (comp - (unpack *)))
+(def :mul-neg (comp - (unpack *)))
 (assert-eq (mul-neg '(2 8)) -16)
 
 (assert-eq (nth 0 '(10 20 30 40)) 10)

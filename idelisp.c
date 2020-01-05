@@ -490,11 +490,34 @@ ideobj* ideenv_get(ideenv* env, ideobj* key) {
 
 void ideenv_put(ideenv* env, ideobj* key, ideobj* val) {
     for (int i=0; i<env->count; i++) {
-        if (strcmp(env->symbols[i], key->symbol) == 0) {
+        if (
+            key->type == IDEOBJ_SYMBOL &&
+            strcmp(env->symbols[i], key->symbol) == 0
+        ) {
             ideobj_del(env->values[i]);
             env->values[i] = ideobj_copy(val);
             return;
         }
+
+        if (
+            key->type == IDEOBJ_KEYWORD &&
+            strcmp(env->symbols[i], key->keyword) == 0
+        ) {
+            ideobj_del(env->values[i]);
+            env->values[i] = ideobj_copy(val);
+            return;
+        }
+    }
+
+    char *key_str;
+
+    if (key->type == IDEOBJ_KEYWORD) {
+        key_str = malloc(strlen(key->keyword) + 1);
+        strcpy(key_str, key->keyword);
+    }
+    if (key->type == IDEOBJ_SYMBOL) {
+        key_str = malloc(strlen(key->symbol) + 1);
+        strcpy(key_str, key->symbol);
     }
 
     env->count++;
@@ -502,8 +525,8 @@ void ideenv_put(ideenv* env, ideobj* key, ideobj* val) {
     env->symbols = realloc(env->symbols, sizeof(char*) * env->count);
 
     env->values[env->count - 1] = ideobj_copy(val);
-    env->symbols[env->count - 1] = malloc(strlen(key->symbol) + 1);
-    strcpy(env->symbols[env->count - 1], key->symbol);
+    env->symbols[env->count - 1] = malloc(strlen(key_str) + 1);
+    strcpy(env->symbols[env->count - 1], key_str);
 }
 
 void ideenv_global_put(ideenv* env, ideobj* key, ideobj* val) {
@@ -998,32 +1021,24 @@ ideobj* builtin_op(ideenv* env, ideobj* obj, char* operator) {
     return ideobj_err("Cannot operate on non-number");
 }
 
+int is_approved_symbol(ideobj* obj) {
+    return obj->type == IDEOBJ_SYMBOL || obj->type == IDEOBJ_KEYWORD;
+}
+
 ideobj* builtin_var(ideenv* env, ideobj* obj, char* func) {
-    IASSERT_TYPE(func, obj, 0, IDEOBJ_QEXPR);
+    IASSERT_NUM(func, obj, 2);
 
     ideobj* keys = obj->cell[0];
+    ideobj* values = obj->cell[1];
 
-    IASSERT_NUM(func, obj, keys->count + 1);
-
-    for (int i=0; i<keys->count; i++) {
-        IASSERT(
-            obj,
-            keys->cell[i]->type == IDEOBJ_SYMBOL,
-            "Function %s cannot set non-symbol",
-            func
-        );
+    if (keys->type == IDEOBJ_QEXPR) {
+        IASSERT_TYPE(func, obj, 1, IDEOBJ_QEXPR);
     }
 
-    IASSERT(
-        obj,
-        keys->count == obj->count-1,
-        "Function %s received incorrect number of names vs values",
-        func
-    );
-
-    for (int i=0; i<keys->count; i++) {
-        ideobj* key = keys->cell[i];
-        ideobj* value = obj->cell[i+1];
+    // Single
+    if (keys->type != IDEOBJ_QEXPR) {
+        ideobj* key = keys;
+        ideobj* value = values;
 
         if (strcmp(func, "def") == 0) {
             ideenv_global_put(env, key, value);
@@ -1032,7 +1047,21 @@ ideobj* builtin_var(ideenv* env, ideobj* obj, char* func) {
         if (strcmp(func, "defl") == 0) {
             ideenv_put(env, key, value);
         }
+    } else {
+        for (int i=0; i<keys->count; i++) {
+            ideobj* key = keys->cell[i];
+            ideobj* value = values->cell[i];
+
+            if (strcmp(func, "def") == 0) {
+                ideenv_global_put(env, key, value);
+            }
+
+            if (strcmp(func, "defl") == 0) {
+                ideenv_put(env, key, value);
+            }
+        }
     }
+
 
     ideobj_del(obj);
     return ideobj_sexpr();
@@ -1120,7 +1149,7 @@ ideobj* builtin_defn(ideenv* env, ideobj* obj) {
     ideobj* body = ideobj_pop(obj, 0);
     ideobj* fn = ideobj_fun(params, body);
 
-    ideenv_global_put(env, ideobj_symbol(name->keyword), fn);
+    ideenv_global_put(env, name, fn);
 
     ideobj_del(obj);
     ideobj_del(fn);
@@ -1355,6 +1384,15 @@ ideobj* builtin_not(ideenv* env, ideobj* obj) {
 
     ideobj_del(obj);
     return ideobj_num(status);
+}
+
+ideobj* builtin_keyword(ideenv* env, ideobj* obj) {
+    IASSERT_NUM("keyword", obj, 1);
+    IASSERT_TYPE("keyword", obj, 0, IDEOBJ_STR);
+
+    ideobj* keyword = ideobj_keyword(obj->cell[0]->str);
+    ideobj_del(obj);
+    return keyword;
 }
 
 ideobj* ideobj_read(mpc_ast_t* node);
@@ -1663,6 +1701,9 @@ void ideenv_add_builtins(ideenv* env) {
 
     // Conditionals
     ideenv_add_builtin(env, "if", builtin_if);
+
+    // Keyword
+    ideenv_add_builtin(env, "keyword", builtin_keyword);
 }
 
 enum { RUNMODE_REPL, RUNMODE_FILE };
