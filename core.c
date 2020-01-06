@@ -1611,14 +1611,23 @@ ideobj* ideobj_eval_sexpr(ideenv* env, ideobj* obj) {
         return first;
     }
 
-    if (first->type != IDEOBJ_BUILTIN && first->type != IDEOBJ_FUN) {
-        ideobj_del(first);
+    // Handle s-expressions wrapped in root
+    if (first->type == IDEOBJ_SEXPR) {
         ideobj_del(obj);
-        return ideobj_err(
-            "Invalid first element, expected %s, got %s",
+        return first;
+    }
+
+    if (first->type != IDEOBJ_BUILTIN && first->type != IDEOBJ_FUN) {
+        ideobj* err = ideobj_err(
+            "Invalid first element, expected %s or %s, got %s",
             idetype_name(IDEOBJ_BUILTIN),
+            idetype_name(IDEOBJ_FUN),
             idetype_name(first->type)
         );
+
+        ideobj_del(first);
+        ideobj_del(obj);
+        return err;
     }
 
     if (first->type == IDEOBJ_BUILTIN) {
