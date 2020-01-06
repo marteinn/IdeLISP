@@ -27,6 +27,13 @@ IdeLISP (type exit() to quit)
 2
 ```
 
+### Compiling and running as WebAssembly
+
+- `make build_wasm`
+- `cd wasm`
+- Serve the directory in a webserver: `python -m SimpleHTTPServer`
+- open "http://localhost:8000/idelisp.html"
+
 ## Example syntax
 
 ```
