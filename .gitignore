@@ -5,3 +5,5 @@ bin/*
 dev.ilisp
 *.lspy
 lispy.c
+wasm/idelisp.wasm
+wasm/idelisp.js
