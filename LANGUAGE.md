@@ -96,6 +96,14 @@ Represents unevaluated (`quoted`) expressions
 
 ### `hashmap`
 
+Are constructed using `{}`
+
+```
+(hashmap '(:key 1))
+```
+
+Can also be constructed with the function `hash-map`
+
 ```
 (hashmap '(:key 1))
 ```
@@ -111,7 +119,7 @@ Represents unevaluated (`quoted`) expressions
 Add key to hashmap
 
 ```
-(ssoc hashmap :key)
+(assoc hashmap :key)
 ```
 
 ### `dissoc`

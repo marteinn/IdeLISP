@@ -40,6 +40,7 @@ IdeLISP (type exit() to quit)
 (load "standard.ilisp")
 (+ 1 2)
 (* (+ 2 3.1) (* 2 3))
+{:my_key "value"}
 (def :x 1)
 (+ x 1)
 (defn :plus-two '(x) '(+ 2 x))

@@ -8,6 +8,7 @@ void EMSCRIPTEN_KEEPALIVE exec(char* source) {
     Symbol = mpc_new("symbol");
     Keyword = mpc_new("keyword");
     Comment = mpc_new("comment");
+    HashMap = mpc_new("hashmap");
     Sexpr = mpc_new("sexpr");
     Qexpr = mpc_new("qexpr");
     Expr = mpc_new("expr");
@@ -21,10 +22,11 @@ void EMSCRIPTEN_KEEPALIVE exec(char* source) {
             keyword  : /:[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&%\\?]+/ ;               \
             symbol   : /[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&%\\?]+/ ;                \
             comment  : /;[^\\r\\n]*/ ;                                        \
+            hashmap  : '{' <expr>* '}' ;                                      \
             sexpr    : '(' <expr>* ')' ;                                      \
             qexpr    : \"'(\" <expr>* ')' ;                                   \
             expr     : <decimal> | <number> | <string> | <keyword> | <symbol> \
-                     | <sexpr> | <qexpr> | <comment> ;                        \
+                     | <sexpr> | <qexpr> | <comment> | <hashmap> ;            \
             idelisp  : /^/ <expr>* /$/ ;                                      \
         ",
         Decimal,
@@ -33,6 +35,7 @@ void EMSCRIPTEN_KEEPALIVE exec(char* source) {
         Keyword,
         Symbol,
         Comment,
+        HashMap,
         Sexpr,
         Qexpr,
         Expr,
@@ -58,13 +61,14 @@ void EMSCRIPTEN_KEEPALIVE exec(char* source) {
     mpc_ast_delete(result.output);
 
     mpc_cleanup(
-        10,
+        11,
         Decimal,
         Number,
         String,
         Keyword,
         Symbol,
         Comment,
+        HashMap,
         Sexpr,
         Qexpr,
         Expr,

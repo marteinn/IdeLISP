@@ -56,6 +56,7 @@ mpc_parser_t* Number;
 mpc_parser_t* String;
 mpc_parser_t* Symbol;
 mpc_parser_t* Comment;
+mpc_parser_t* HashMap;
 mpc_parser_t* Keyword;
 mpc_parser_t* Sexpr;
 mpc_parser_t* Qexpr;
@@ -317,6 +318,21 @@ int ideobj_eq(ideobj* left, ideobj* right) {
             }
 
             return 1;
+        case IDEOBJ_HASHMAP:
+            if (left->count != right->count) {
+                return 0;
+            }
+            for (int i=0; i<left->count; i++) {
+                if (ideobj_eq(left->keys[0], right->keys[0]) == 0) {
+                    return 0;
+                }
+                if (ideobj_eq(left->cell[0], right->cell[0]) == 0) {
+                    return 0;
+                }
+            }
+
+            return 1;
+
         case IDEOBJ_STR:
             return strcmp(left->str, right->str) == 0;
         case IDEOBJ_KEYWORD:
@@ -625,7 +641,7 @@ ideobj* eval_tenary_decimal_op(ideobj* left, char* operator, ideobj* right) {
     return ideobj_err("Invalid operator '%s'", operator);
 }
 
-ideobj* ideobj_add(ideobj* left, ideobj* right) {
+ideobj* ideobj_list_add(ideobj* left, ideobj* right) {
     left->count++;
     left->cell = realloc(left->cell, sizeof(ideobj*) * left->count);
     left->cell[left->count-1] = right;
@@ -766,7 +782,7 @@ ideobj* builtin_str_lowercase(ideenv* env, ideobj *obj) {
     return ideobj_str(ucase_str);
 }
 
-void ideobj_hashmap_put(ideobj* hm, ideobj* key, ideobj* val) {
+ideobj* ideobj_hashmap_add(ideobj* hm, ideobj* key, ideobj* val) {
     hm->count++;
 
     hm->keys = realloc(hm->keys, sizeof(ideobj*) * hm->count);
@@ -774,6 +790,8 @@ void ideobj_hashmap_put(ideobj* hm, ideobj* key, ideobj* val) {
 
     hm->cell = realloc(hm->cell, sizeof(ideobj*) * hm->count);
     hm->cell[hm->count-1] = val;
+
+    return hm;
 }
 
 ideobj* builtin_hashmap(ideenv* env, ideobj* obj) {
@@ -791,7 +809,7 @@ ideobj* builtin_hashmap(ideenv* env, ideobj* obj) {
         ideobj *key = ideobj_pop(obj->cell[0], 0);
         ideobj *value = ideobj_pop(obj->cell[0], 0);
 
-        ideobj_hashmap_put(hm, key, value);
+        ideobj_hashmap_add(hm, key, value);
 
         // hm->count++;
 
@@ -830,7 +848,7 @@ ideobj* builtin_hashmap_assoc(ideenv* env, ideobj* obj) {
 
     ideobj *hm = ideobj_pop(obj, 0);
     ideobj *key = ideobj_pop(obj, 0);
-    ideobj *val= ideobj_pop(obj, 0);
+    ideobj *val = ideobj_pop(obj, 0);
 
     for (int i=0; i<hm->count; i++) {
         if (ideobj_eq(key, hm->keys[i])) {
@@ -840,8 +858,31 @@ ideobj* builtin_hashmap_assoc(ideenv* env, ideobj* obj) {
         }
     }
 
-    ideobj_hashmap_put(hm, key, val);
+    ideobj_hashmap_add(hm, key, val);
     return hm;
+}
+
+ideobj* ideobj_hashmap_take(ideobj *obj, int i, char* return_type) {
+    ideobj* key = obj->keys[i];
+    ideobj* val = obj->cell[i];
+
+    memmove(
+        &obj->keys[i], &obj->keys[i+1], sizeof(ideobj*) * (obj->count-i-1)
+    );
+    memmove(
+        &obj->cell[i], &obj->cell[i+1], sizeof(ideobj*) * (obj->count-i-1)
+    );
+
+    obj->count--;
+    obj->keys= realloc(obj->keys, sizeof(ideobj*) * obj->count);
+    obj->cell = realloc(obj->cell, sizeof(ideobj*) * obj->count);
+
+    if (strcmp(return_type, "key") == 0) {
+        return key;
+    }
+
+    ideobj_del(obj);
+    return val;
 }
 
 ideobj* builtin_hashmap_deassoc(ideenv* env, ideobj* obj) {
@@ -939,7 +980,7 @@ ideobj* builtin_eval(ideenv* env, ideobj* obj) {
 
 ideobj* ideobj_join(ideobj* left, ideobj* right) {
     for (int i = 0; i < right->count; i++) {
-        left = ideobj_add(left, right->cell[i]);
+        left = ideobj_list_add(left, right->cell[i]);
     }
 
     free(right->cell);
@@ -1186,7 +1227,7 @@ ideobj* builtin_let(ideenv* env, ideobj* obj) {
 
     return builtin_eval(
         local_env,
-        ideobj_add(
+        ideobj_list_add(
             ideobj_sexpr(),
             ideobj_copy(obj->cell[2])
         )
@@ -1576,7 +1617,7 @@ ideobj* ideobj_call_fun(ideenv* env, ideobj* fun, ideobj* args) {
 
         return builtin_eval(
             fun->env,
-            ideobj_add(
+            ideobj_list_add(
                 ideobj_sexpr(),
                 ideobj_copy(fun->body)
             )
@@ -1584,6 +1625,26 @@ ideobj* ideobj_call_fun(ideenv* env, ideobj* fun, ideobj* args) {
     } else {
         return ideobj_copy(fun);
     }
+}
+
+
+ideobj* ideobj_eval_hashmap(ideenv* env, ideobj* obj) {
+    for (int i=0; i<obj->count; i++) {
+        obj->keys[i] = ideobj_eval(env, obj->keys[i]);
+        obj->cell[i] = ideobj_eval(env, obj->cell[i]);
+    }
+
+    for (int i=0; i<obj->count; i++) {
+        if (obj->keys[i]->type == IDEOBJ_ERR) {
+            return ideobj_hashmap_take(obj, i, "key");
+        }
+
+        if (obj->cell[i]->type == IDEOBJ_ERR) {
+            return ideobj_hashmap_take(obj, i, "value");
+        }
+    }
+
+    return obj;
 }
 
 ideobj* ideobj_eval_sexpr(ideenv* env, ideobj* obj) {
@@ -1647,6 +1708,10 @@ ideobj* ideobj_eval(ideenv* env, ideobj* obj) {
     if (obj->type == IDEOBJ_SEXPR) {
         return ideobj_eval_sexpr(env, obj);
     }
+
+    if (obj->type == IDEOBJ_HASHMAP) {
+        return ideobj_eval_hashmap(env, obj);
+    }
     return obj;
 }
 
@@ -1701,6 +1766,7 @@ ideobj* ideobj_read(mpc_ast_t* node) {
     if (strcmp(node->tag, ">") == 0) { acc_value = ideobj_sexpr(); }
     if (strstr(node->tag, "sexpr")) { acc_value = ideobj_sexpr(); }
     if (strstr(node->tag, "qexpr")) { acc_value = ideobj_qexpr(); }
+    if (strstr(node->tag, "hashmap")) { acc_value = ideobj_hashmap(); }
 
     for (int i=0; i<node->children_num; i++) {
         if (strstr(node->children[i]->tag, "comment")) { continue; }
@@ -1711,7 +1777,17 @@ ideobj* ideobj_read(mpc_ast_t* node) {
         if (strcmp(node->children[i]->contents, "}") == 0) { continue; }
         if (strcmp(node->children[i]->tag, "regex") == 0) { continue; }
 
-        acc_value = ideobj_add(acc_value, ideobj_read(node->children[i]));
+        if (acc_value->type == IDEOBJ_HASHMAP) {
+            acc_value = ideobj_hashmap_add(
+                acc_value,
+                ideobj_read(node->children[i]),
+                ideobj_read(node->children[i+1])
+            );
+            i++;
+        } else {
+            acc_value = ideobj_list_add(acc_value, ideobj_read(node->children[i]));
+        }
+
     }
 
     return acc_value;

@@ -16,6 +16,12 @@
 
 ; hashmap
 (assert-eq (type (hash-map '())) "HashMap")
+(assert-eq (type {}) (type (hash-map '())))
+(assert-eq (len {}) 0)
+(assert-eq (len {:a 1}) 1)
+(assert-eq {:a 1} {:a 1})
+(assert-eq {:a 1} (hash-map '(:a 1)))
+(assert-eq (== {:a 1} {:b 1}) 0)
 (assert-eq (len (hash-map '("a" 1))) 1)
 (assert-eq (key (hash-map '("a" 1)) "a") 1)
 (assert-eq

@@ -21,6 +21,7 @@ int main(int argc, char** argv) {
     Symbol = mpc_new("symbol");
     Keyword = mpc_new("keyword");
     Comment = mpc_new("comment");
+    HashMap = mpc_new("hashmap");
     Sexpr = mpc_new("sexpr");
     Qexpr = mpc_new("qexpr");
     Expr = mpc_new("expr");
@@ -34,10 +35,11 @@ int main(int argc, char** argv) {
             keyword  : /:[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&%\\?]+/ ;               \
             symbol   : /[a-zA-Z0-9_+^\\-*\\/\\\\=<>!&%\\?]+/ ;                \
             comment  : /;[^\\r\\n]*/ ;                                        \
+            hashmap  : '{' <expr>* '}' ;                                      \
             sexpr    : '(' <expr>* ')' ;                                      \
             qexpr    : \"'(\" <expr>* ')' ;                                   \
             expr     : <decimal> | <number> | <string> | <keyword> | <symbol> \
-                     | <sexpr> | <qexpr> | <comment> ;                        \
+                     | <sexpr> | <qexpr> | <comment> | <hashmap> ;            \
             idelisp  : /^/ <expr>* /$/ ;                                      \
         ",
         Decimal,
@@ -46,6 +48,7 @@ int main(int argc, char** argv) {
         Keyword,
         Symbol,
         Comment,
+        HashMap,
         Sexpr,
         Qexpr,
         Expr,
@@ -55,7 +58,7 @@ int main(int argc, char** argv) {
     ideenv_add_builtins(env);
 
     if (run_mode == RUNMODE_FILE) {
-        ideobj* args = ideobj_add(ideobj_sexpr(), ideobj_str(source_file));
+        ideobj* args = ideobj_list_add(ideobj_sexpr(), ideobj_str(source_file));
         ideobj* expression = builtin_load(env, args);
 
         if (expression->type == IDEOBJ_ERR) {
@@ -92,13 +95,14 @@ int main(int argc, char** argv) {
     ideenv_del(env);
 
     mpc_cleanup(
-        10,
+        11,
         Decimal,
         Number,
         String,
         Keyword,
         Symbol,
         Comment,
+        HashMap,
         Sexpr,
         Qexpr,
         Expr,
