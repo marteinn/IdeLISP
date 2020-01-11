@@ -1,3 +1,5 @@
+![IdeLISP](https://raw.githubusercontent.com/marteinn/IdeLISP/master/img/idelisp-logo.png)
+
 # IdeLISP
 This is a LISP I put together while reading [Build Your Own Lisp](http://www.buildyourownlisp.com/). Inspired by Lispy, Clojure and Common Lisp.
 
