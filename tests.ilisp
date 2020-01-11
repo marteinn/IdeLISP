@@ -198,3 +198,12 @@
 (assert-eq (all not '()) 1)
 
 (assert-eq (empty? '()) 1)
+
+; thread first
+(defn :curryassoc '(x y z) '(assoc x y z))
+(assert-eq
+  (-> {:name "Bob"}
+    (curryassoc :age 4)
+    (curryassoc :type "dog"))
+  {:name "Bob" :age 4 :type "dog"}
+)
