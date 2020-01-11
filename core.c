@@ -844,11 +844,11 @@ ideobj* builtin_hashmap_key(ideenv* env, ideobj* obj) {
 
 ideobj* builtin_hashmap_assoc(ideenv* env, ideobj* obj) {
     IASSERT_NUM("assoc", obj, 3);
-    IASSERT_TYPE("assoc", obj, 0, IDEOBJ_HASHMAP);
+    IASSERT_TYPE("assoc", obj, 2, IDEOBJ_HASHMAP);
 
-    ideobj *hm = ideobj_pop(obj, 0);
     ideobj *key = ideobj_pop(obj, 0);
     ideobj *val = ideobj_pop(obj, 0);
+    ideobj *hm = ideobj_pop(obj, 0);
 
     for (int i=0; i<hm->count; i++) {
         if (ideobj_eq(key, hm->keys[i])) {
@@ -886,11 +886,11 @@ ideobj* ideobj_hashmap_take(ideobj *obj, int i, char* return_type) {
 }
 
 ideobj* builtin_hashmap_deassoc(ideenv* env, ideobj* obj) {
-    IASSERT_NUM("assoc", obj, 2);
-    IASSERT_TYPE("assoc", obj, 0, IDEOBJ_HASHMAP);
+    IASSERT_NUM("dassoc", obj, 2);
+    IASSERT_TYPE("dassoc", obj, 1, IDEOBJ_HASHMAP);
 
-    ideobj *hm = ideobj_pop(obj, 0);
     ideobj *key = ideobj_pop(obj, 0);
+    ideobj *hm = ideobj_pop(obj, 0);
 
     int index = -1;
 

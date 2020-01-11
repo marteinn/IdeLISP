@@ -27,17 +27,17 @@
 (assert-eq
   (key
     (assoc
-      (hash-map '())
       :a
-      1)
+      1
+      (hash-map '()))
     :a)
   1)
 
 (assert-eq
   (len
     (deassoc
-      (hash-map '(:a 1))
-      :a))
+      :a
+      (hash-map '(:a 1))))
   0)
 
 ; keywords
