@@ -33,6 +33,11 @@
 (defn :comp '(f g fs)
   '(f (g fs)))
 
+; Thread first macro
+(defn :-> '(&rest args)
+  '(foldl (fn '(acc curr)
+    '(curr acc)) (fst args) (tail args)))
+
 ;; List functions
 
 ; Retrive unwrapped first, second and third element in list
