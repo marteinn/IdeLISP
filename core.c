@@ -1450,8 +1450,6 @@ ideobj* builtin_if(ideenv* env, ideobj* obj) {
     ideobj* consequence = ideobj_pop(obj, 0);
     ideobj* alternative = ideobj_pop(obj, 0);
 
-    ideobj_del(condition);
-
     consequence->type = IDEOBJ_SEXPR;
     alternative->type = IDEOBJ_SEXPR;
 
@@ -1462,6 +1460,7 @@ ideobj* builtin_if(ideenv* env, ideobj* obj) {
         result = ideobj_eval(env, alternative);
     }
 
+    ideobj_del(condition);
     ideobj_del(obj);
     return result;
 }
