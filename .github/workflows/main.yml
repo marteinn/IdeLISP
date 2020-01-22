@@ -16,3 +16,5 @@ jobs:
       run: cp ./mpc/mpc.c ./mpc.c && cp ./mpc/mpc.h ./mpc.h
     - name: Compile
       run: make build
+    - name: Test
+      run: make test
