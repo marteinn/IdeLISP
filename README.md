@@ -69,18 +69,5 @@ IdeLISP (type exit() to quit)
 See the [language](https://github.com/marteinn/IdeLISP/blob/master/LANGUAGE.md) specification
 
 
-## Debugging
-- Use lldb
-- [Valgrind](https://valgrind.org/)
-
-
-## Documentation
-- [C reference](https://en.cppreference.com/w/c)
-- [Polish notation](https://en.wikipedia.org/wiki/Polish_notation)
-- [MPC](https://github.com/orangeduck/mpc)
-- [Cons](https://en.wikipedia.org/wiki/Cons)
-- [Common Lisp](https://en.wikipedia.org/wiki/Common_Lisp)
-
-
 ## The name?
 Its a pun on the french name for dogmatix in Asterix/Obelix, which is Idéfix.

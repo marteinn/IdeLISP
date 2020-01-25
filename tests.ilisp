@@ -209,3 +209,4 @@
 )
 
 (assert-eq ((always 5) 1) 5)
+(assert-eq (flatten '(1 '(2 3 '(4 5)) 6)) '(1 2 3 4 5 6))

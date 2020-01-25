@@ -35,12 +35,27 @@
 
 ; Thread first macro
 (defn :-> '(&rest args)
-  '(foldl (fn '(acc curr)
-    '(curr acc)) (fst args) (tail args)))
+  '(foldl
+    (fn '(acc curr)
+      '(curr acc))
+    (fst args)
+    (tail args)))
 
 ; Always return the same value
 (defn :always '(x)
   '(fn '(&rest _) '(x)))
+
+; Flatten list elements
+(defn :flatten '(values)
+  '(foldl
+    (fn '(acc curr)
+      '(join acc
+        (cond
+          '((list? curr) (flatten curr))
+          '(true (list curr)))))
+    '()
+    values))
+
 
 ;; List functions
 
@@ -150,6 +165,11 @@
   '(cond
     '((== (len items) 0) false)
     '(true true)))
+
+(defn :list? '(x)
+  '(cond
+    '((== (type x) "Quoted Expression") true)
+    '(true false)))
 
 ;; Conditional
 
