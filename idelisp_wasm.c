@@ -42,6 +42,7 @@ void EMSCRIPTEN_KEEPALIVE exec(char* source) {
         IdeLISP);
 
     ideenv* env = ideenv_new();
+    env->depth = 0;
     ideenv_add_builtins(env);
 
     mpc_result_t result;

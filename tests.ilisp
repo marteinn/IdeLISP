@@ -44,7 +44,7 @@
 (assert-eq (type :hello) "Keyword")
 (assert-eq :hello :hello)
 (assert-eq (keyword "hello") :hello)
-
+;
 ; int
 (assert-eq (type 1) "Number")
 (assert-eq (+ 1 1) 2)
@@ -62,7 +62,7 @@
 (assert-eq (>= 1 1) 1)
 (assert-eq (< 1 1) 0)
 (assert-eq (<= 1 1) 1)
-
+;
 ; decimal
 (assert-eq (type 1.1) "Decimal")
 (assert-eq (type 10.1) "Decimal")
@@ -84,7 +84,7 @@
 (assert-eq (>= 1.0 1.0) 1)
 (assert-eq (< 1.0 1.0) 0)
 (assert-eq (<= 1.0 1.0) 1)
-
+;
 ; str
 (assert-eq (type "hi") "String")
 (assert-eq (str join) "")
@@ -102,7 +102,7 @@
 ; lowercase
 (assert-eq (lower-case "HEllO") "hello")
 (assert-eq (lower-case "hello") "hello")
-
+;
 ; not
 (assert-eq (not 1) 0)
 (assert-eq (not 0) 1)
@@ -139,9 +139,9 @@
 (defl '(local-val) '(44))
 (assert-eq local-val 44)
 
-;
+
 ; Standard library functions
-;
+
 (assert-eq (concat "hello" " " "martin") "hello martin")
 (assert-eq (unpack + '(1 2 3)) 6)
 (assert-eq (pack head 1 2 3) '(1))
@@ -149,7 +149,7 @@
 (assert-eq (fst '(1 2 3)) 1)
 (assert-eq (snd '(1 2 3)) 2)
 (assert-eq (trd '(1 2 3)) 3)
-
+;
 (let '(x) '(1)
   '(assert-eq x 1))
 
@@ -179,7 +179,7 @@
 
 (assert-eq (name-of-num 1) "one")
 (assert-eq (name-of-num 3) "other")
-
+;
 (defn :day-name '(x)
   '(case x
      '(0 "Monday")
@@ -207,3 +207,5 @@
     (curryassoc :type "dog"))
   {:name "Bob" :age 4 :type "dog"}
 )
+
+(assert-eq ((always 5) 1) 5)

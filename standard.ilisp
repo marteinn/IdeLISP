@@ -38,6 +38,10 @@
   '(foldl (fn '(acc curr)
     '(curr acc)) (fst args) (tail args)))
 
+; Always return the same value
+(defn :always '(x)
+  '(fn '(&rest _) '(x)))
+
 ;; List functions
 
 ; Retrive unwrapped first, second and third element in list

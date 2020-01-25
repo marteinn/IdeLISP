@@ -49,6 +49,7 @@ struct ideenv {
     int count;
     char** symbols;
     ideobj** values;
+    int depth;
 };
 
 mpc_parser_t* Decimal;
@@ -64,7 +65,9 @@ mpc_parser_t* Expr;
 mpc_parser_t* IdeLISP;
 
 
-ideenv* ideenv_new(void);       // Forward declaration
+ideenv* ideenv_new(void);            // Forward declaration
+ideenv* ideenv_new_enclosed(ideenv* env);       // Forward declaration
+
 
 ideobj* ideobj_err(char* format, ...) {
     ideobj* obj = malloc(sizeof(ideobj));
@@ -452,7 +455,15 @@ ideenv* ideenv_new(void) {
     env->count = 0;
     env->symbols = NULL;
     env->values = NULL;
+    env->depth = -1;
     return env;
+}
+
+ideenv* ideenv_new_enclosed(ideenv* env) {
+    ideenv* enclosed_env = ideenv_new();
+    enclosed_env->parent = env;
+    enclosed_env->depth = env->depth+1;
+    return enclosed_env;
 }
 
 void ideenv_del(ideenv* env) {
@@ -475,14 +486,28 @@ void ideenv_print(ideenv* env) {
         printf("%s: ", env->symbols[i]);
         ideobj_print(env->values[i]);
     }
+
+    if (env->count == 0) {
+        printf("[[empty]]");
+    }
+
+    if (env->parent) {
+        printf(", parent: ");
+        ideenv_print(env->parent);
+    }
     putchar(')');
 }
 
+void ideenv_println(ideenv* env) {
+    ideenv_print(env);
+    putchar('\n');
+}
 
 ideenv* ideenv_copy(ideenv* env) {
     ideenv* copy = malloc(sizeof(ideenv));
     copy->parent = env->parent;
     copy->count = env->count;
+    copy->depth = env->depth;
     copy->symbols = malloc(sizeof(char*) * copy->count);
     copy->values = malloc(sizeof(ideobj*) * copy->count);
 
@@ -1204,8 +1229,7 @@ ideobj* builtin_let(ideenv* env, ideobj* obj) {
         "let must recieve same number of keywords as values"
     );
 
-    ideenv* local_env = ideenv_new();
-    local_env->parent = env;
+    ideenv* local_env = ideenv_new_enclosed(env);
 
     for (int i=0; i<obj->cell[0]->count; i++) {
         IASSERT(
@@ -1253,7 +1277,10 @@ ideobj* builtin_fn(ideenv* env, ideobj* obj) {
     ideobj* body = ideobj_pop(obj, 0);
     ideobj_del(obj);
 
-    return ideobj_fun(params, body);
+    ideobj *fn = ideobj_fun(params, body);
+    fn->env->parent = env;
+    fn->env->depth = env->depth + 1;
+    return fn;
 }
 
 ideobj* builtin_defn(ideenv* env, ideobj* obj) {
@@ -1266,6 +1293,9 @@ ideobj* builtin_defn(ideenv* env, ideobj* obj) {
     ideobj* params = ideobj_pop(obj, 0);
     ideobj* body = ideobj_pop(obj, 0);
     ideobj* fn = ideobj_fun(params, body);
+
+    fn->env->parent = env;
+    fn->env->depth = env->depth + 1;
 
     ideenv_global_put(env, name, fn);
 
@@ -1560,6 +1590,9 @@ ideobj* ideobj_call_fun(ideenv* env, ideobj* fun, ideobj* args) {
     int num_args = args->count;
     int has_zero_arity = 0;
 
+    ideenv* fn_env = ideenv_copy(env);
+    fn_env->parent = fun->env;
+
     // Allow calling zero arity functions with empty sexpr arg
     if (fun->params->count == 0) {
         if (
@@ -1595,8 +1628,9 @@ ideobj* ideobj_call_fun(ideenv* env, ideobj* fun, ideobj* args) {
                 );
             }
 
+
             ideobj *rest_param = ideobj_pop(fun->params, 0);
-            ideenv_put(env, rest_param, builtin_list(env, args));
+            ideenv_put(fn_env, rest_param, builtin_list(fn_env, args));
             ideobj_del(param);
             ideobj_del(rest_param);
             break;
@@ -1604,7 +1638,7 @@ ideobj* ideobj_call_fun(ideenv* env, ideobj* fun, ideobj* args) {
 
         ideobj *value = ideobj_pop(args, 0);
 
-        ideenv_put(fun->env, param, value);
+        ideenv_put(fn_env, param, value);
         ideobj_del(param);
         ideobj_del(value);
     }
@@ -1612,16 +1646,15 @@ ideobj* ideobj_call_fun(ideenv* env, ideobj* fun, ideobj* args) {
     ideobj_del(args);
 
     if (fun->params->count == 0) {
-        fun->env->parent = env;
-
         return builtin_eval(
-            fun->env,
+            fn_env,
             ideobj_list_add(
                 ideobj_sexpr(),
                 ideobj_copy(fun->body)
             )
         );
     } else {
+        fun->env = fn_env;
         return ideobj_copy(fun);
     }
 }

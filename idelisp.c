@@ -55,6 +55,7 @@ int main(int argc, char** argv) {
         IdeLISP);
 
     ideenv* env = ideenv_new();
+    env->depth = 0;
     ideenv_add_builtins(env);
 
     if (run_mode == RUNMODE_FILE) {
