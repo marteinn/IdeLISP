@@ -224,6 +224,22 @@ Returns true if list is empty
 (empty? '())
 ```
 
+### `list?`
+
+Returns true if data is lis type. (Standard library)
+
+```
+(list? (list 1 2))
+```
+
+### `flatten`
+
+Converts multi-dimensional lists to a one-dimensional one. (Standard library)
+
+```
+(flatten '(1 2) '(3 4))
+```
+
 ## Functions
 
 ### `defn`
@@ -252,6 +268,26 @@ Creates a lambda function
 (defn '(show-all) '(&rest rest) '(print rest))
 (show-all 1 2 3)
 >> '(1 2 3)
+```
+
+### `always`
+
+Creates a function that always returns the same value. (Standard library)
+
+```
+((always 1) 2)
+>> 1
+```
+
+### `->`
+
+Allows you to pipe a value through functions
+
+```
+(-> {:name "Bob"}
+  (curryassoc :age 4)
+  (curryassoc :type "dog"))
+>> {:name "Bob" :age 4 :type "dog"}
 ```
 
 ## Strings
